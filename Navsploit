@@ -8,6 +8,8 @@ local allowedUsers = {
     ["Currtency"] = true,
  ["FearingLawrence"] = true,
  ["kooooooooooooooooobe"] = true,
+ ["gaymute"] = true,
+
  ["keehqq"] = true,
 }
 
