@@ -8,6 +8,7 @@ local allowedUsers = {
     ["Currtency"] = true,
  ["FearingLawrence"] = true,
  ["kooooooooooooooooobe"] = true,
+ ["keehqq"] = true,
 }
 
 local Players = game:GetService("Players")
