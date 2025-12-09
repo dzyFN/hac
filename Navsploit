@@ -376,45 +376,7 @@ sectionJ:AddButton({
     end
 })
 
-sectionJ:AddLabel("CLOCK")
 
-sectionJ:AddTextField("BRIGHTNESS","Enter number",function(value)
-    local n = tonumber(value)
-    if n then game.Lighting.Brightness = n end
-end)
-
-sectionJ:AddTextField("TIME","Enter number",function(value)
-    local n = tonumber(value)
-    if n then game.Lighting.ClockTime = n end
-end)
-
----------------------------------------------------
--- THEMES
----------------------------------------------------
-local sectionThemes = Tabs.Settings:AddSection("Hub Themes")
-
-local themes = {
-    ["Dark"]   = {Primary=Color3.fromRGB(30,30,30), Accent=Color3.fromRGB(0,170,255)},
-    ["Light"]  = {Primary=Color3.fromRGB(240,240,240), Accent=Color3.fromRGB(0,120,255)},
-    ["Red"]    = {Primary=Color3.fromRGB(50,0,0), Accent=Color3.fromRGB(255,0,0)},
-    ["Green"]  = {Primary=Color3.fromRGB(0,50,0), Accent=Color3.fromRGB(0,255,0)},
-    ["Blue"]   = {Primary=Color3.fromRGB(0,0,50), Accent=Color3.fromRGB(0,170,255)},
-    ["Purple"] = {Primary=Color3.fromRGB(50,0,50), Accent=Color3.fromRGB(170,0,255)},
-}
-
-sectionThemes:AddDropdown("ThemeSelector",{
-    Title="Select Theme",
-    Default="Dark",
-    Options={"Dark","Light","Red","Green","Blue","Purple"},
-    MultiSelect=false
-}):OnChanged(function(selected)
-    local theme = themes[selected]
-    if theme then
-        Fluent:SetPrimaryColor(theme.Primary)
-        Fluent:SetAccentColor(theme.Accent)
-        Fluent:Notify({Title="Navsploit",Content="Theme changed to "..selected,Duration=3})
-    end
-end)
 
 ---------------------------------------------------
 -- FINISH LOADING
