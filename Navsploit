@@ -10,9 +10,7 @@ local allowedUsers = {
     ["kooooooooooooooooobe"] = true,
     ["gaymute"] = true,
     ["newtrackrunners"] = true,
-    ["Xy3zzy"] = true,
     ["keehqq"] = true,
-  ["Pacablly"] = true,
 }
 
 local Players = game:GetService("Players")
@@ -357,7 +355,9 @@ UserInputService.InputBegan:Connect(function(input,gpe)
     end
 end)
 
-
+---------------------------------------------------
+-- FINISH LOADING
+---------------s{Title="Navsploit v5", Content="Script Loaded Successfully!", Duration=8})
 Window:SelectTab(1)
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
