@@ -63,6 +63,7 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
+
 ---------------------------------------------------
 -- WALK SPEED
 ---------------------------------------------------
@@ -124,6 +125,43 @@ Tabs.RCFA:AddButton({
         local char = RCFA.Character
         if char and char:FindFirstChild("Hitbox") and char.Hitbox:GetChildren()[11] then
             char.Hitbox:GetChildren()[11].Disabled = true
+        end
+    end
+})
+Tabs.RCFA:AddButton({
+    Title = "ROPREP BYPASS v2",
+    Description = "Disables ONLY the circled Hitbox LocalScript",
+    Callback = function()
+        local char = RCFA.Character
+        if not char then return end
+
+        local hitbox = char:FindFirstChild("Hitbox")
+        if not hitbox then return end
+
+        -- collect all LocalScripts under Hitbox
+        local localScripts = {}
+        for _, child in ipairs(hitbox:GetChildren()) do
+            if child:IsA("LocalScript") then
+                table.insert(localScripts, child)
+            end
+        end
+
+        -- if 2 localscripts exist (circled + uncircled)
+        if #localScripts >= 2 then
+            -- disable the FIRST one only (circled)
+            localScripts[1].Disabled = true
+
+            Fluent:Notify({
+                Title = "Navsploit",
+                Content = "Circled LocalScript DISABLED successfully.",
+                Duration = 4
+            })
+        else
+            Fluent:Notify({
+                Title = "Navsploit",
+                Content = "Hitbox LocalScripts not found.",
+                Duration = 4
+            })
         end
     end
 })
@@ -354,7 +392,42 @@ UserInputService.InputBegan:Connect(function(input,gpe)
         Fluent:Notify({Title="Navsploit", Content="OL/DL "..(bvEnabled and "ON" or "OFF"), Duration=3})
     end
 end)
+local sectionJ = Tabs.Settings:AddSection("General Utilities")
 
+sectionJ:AddButton({
+    Title = "INF YIELD",
+    Description = "Loads Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end
+})
+
+---------------------------------------------------
+-- CLOCK SETTINGS
+---------------------------------------------------
+sectionJ:AddLabel("CLOCK SETTINGS")
+
+sectionJ:AddInput("BrightnessClock", {
+    Title = "Brightness",
+    Default = "",
+    Placeholder = "Enter number..."
+}):OnChanged(function(brightness)
+    local b = tonumber(brightness)
+    if b then
+        game:GetService("Lighting").Brightness = b
+    end
+end)
+
+sectionJ:AddInput("ClockTimeBox", {
+    Title = "Clock Time",
+    Default = "",
+    Placeholder = "Enter number..."
+}):OnChanged(function(time)
+    local t = tonumber(time)
+    if t then
+        game:GetService("Lighting").ClockTime = t
+    end
+end)
 ---------------------------------------------------
 -- FINISH LOADING
 ---------------s{Title="Navsploit v5", Content="Script Loaded Successfully!", Duration=8})
