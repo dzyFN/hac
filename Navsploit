@@ -146,7 +146,7 @@ local function updateHitbox()
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    local hitbox = char:FindFirstChild("Hitbox")
+    local hitbox = root:FindFirstChild("Hitbox")
     if not hitbox then
         hitbox = Instance.new("Part")
         hitbox.Name = "Hitbox"
@@ -192,13 +192,12 @@ Tabs.RCFA:AddToggle("VisibleHB", {
 end)
 
 ---------------------------------------------------
--- AUTO-TUCK SYSTEM (FIXED)
+-- AUTO-TUCK SYSTEM (FIXED VERSION)
 ---------------------------------------------------
 local autoTuckEnabled = false
 local autoTuckConnection
-local autoTuckBind = Enum.KeyCode.RightBracket -- default key
+local autoTuckBind = Enum.KeyCode.RightBracket
 
--- FIXED TAB: changed from Tabs.Local to Tabs.RCFA
 local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
     Title = "Auto Tuck (ON/OFF)",
     Default = false
@@ -225,7 +224,6 @@ local function setupAutoTuck()
         autoTuckConnection:Disconnect()
         autoTuckConnection = nil
     end
-
     if autoTuckEnabled then
         local char = RCFA.Character
         if char then
@@ -249,7 +247,7 @@ end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == autoTuckBind then
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == autoTuckBind then
         autoTuckEnabled = not autoTuckEnabled
         autoTuckToggle:SetValue(autoTuckEnabled)
         Fluent:Notify({
@@ -273,17 +271,15 @@ end)
 local autoTruckEnabled = false
 local autoTruckConnection
 
-Tabs.RCFA:AddToggle("AutoTruckToggle",{Title="Auto Truck", Default=false})
-:OnChanged(function(state)
+Tabs.RCFA:AddToggle("AutoTruckToggle",{Title="Auto Truck", Default=false}):OnChanged(function(state)
     autoTruckEnabled = state
     if autoTruckConnection then autoTruckConnection:Disconnect() end
-
     if autoTruckEnabled then
         autoTruckConnection = RunService.RenderStepped:Connect(function()
             for _,plr in pairs(Players:GetPlayers()) do
-                if plr ~= RCFA and plr.Character and plr.Character.PrimaryPart and RCFA.Character and RCFA.Character.PrimaryPart then
+                if plr~=RCFA and plr.Character and plr.Character.PrimaryPart and RCFA.Character and RCFA.Character.PrimaryPart then
                     local dist = (RCFA.Character.PrimaryPart.Position - plr.Character.PrimaryPart.Position).Magnitude
-                    if dist <= 10 then
+                    if dist<=10 then
                         local football = RCFA.Character:FindFirstChild("Football")
                         if football and football:FindFirstChild("Handle") then
                             football.Handle.RemoteEvent:FireServer({[1]={[1]="Truck",[2]=true}})
@@ -296,40 +292,7 @@ Tabs.RCFA:AddToggle("AutoTruckToggle",{Title="Auto Truck", Default=false})
 end)
 
 ---------------------------------------------------
--- DECREASE HITBOX
----------------------------------------------------
-Tabs.RCFA:AddInput("DecreaseHitbox",{Title="Decrease Hitbox",Placeholder="Enter number..."})
-:OnChanged(function(text)
-    local b = tonumber(text)
-    if not b then return end
-    local char = RCFA.Character
-    if char and char:FindFirstChild("Hitbox") then
-        char.Hitbox.Size = Vector3.new(b-2,b-2,b-2)
-    end
-end)
-
----------------------------------------------------
--- MAGNET
----------------------------------------------------
-local magnetValue = nil
-Tabs.RCFA:AddInput("MagnetBox",{Title="Magnet Range",Placeholder="Type range..."})
-:OnChanged(function(text)
-    magnetValue = tonumber(text)
-end)
-
-task.spawn(function()
-    while task.wait() do
-        if magnetValue then
-            local char = RCFA.Character
-            if char and char:FindFirstChild("Hitbox") then
-                char.Hitbox.Size = Vector3.new(magnetValue+3, magnetValue+5, magnetValue+3)
-            end
-        end
-    end
-end)
-
----------------------------------------------------
--- OL/DL BODYVELOCITY DESTROY
+-- OL/DL (BODYVELOCITY)
 ---------------------------------------------------
 local BVTable = {}
 local bvEnabled = true
@@ -341,8 +304,7 @@ Tabs.RCFA:AddInput("OLDLKeyBind",{
     Title="OL/DL Keybind",
     Default=bvBind.Name,
     Placeholder="Press key..."
-})
-:OnChanged(function(text)
+}):OnChanged(function(text)
     local key = Enum.KeyCode[text]
     if key then
         bvBind = key
@@ -352,26 +314,6 @@ end)
 
 bvToggle:OnChanged(function(state)
     bvEnabled = state
-    if not bvEnabled then
-        for _,bv in pairs(BVTable) do
-            if bv.Parent then bv:Clone().Parent = bv.Parent end
-        end
-        BVTable = {}
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input,gpe)
-    if not gpe and input.KeyCode == bvBind then
-        bvEnabled = not bvEnabled
-        bvToggle:SetValue(bvEnabled)
-        Fluent:Notify({Title="Navsploit",Content="OL/DL: "..(bvEnabled and "ON" or "OFF"), Duration=3})
-        if not bvEnabled then
-            for _,bv in pairs(BVTable) do
-                if bv.Parent then bv:Clone().Parent=bv.Parent end
-            end
-            BVTable = {}
-        end
-    end
 end)
 
 task.spawn(function()
@@ -391,7 +333,7 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------
--- SETTINGS TAB
+-- SETTINGS → INFINITE YIELD
 ---------------------------------------------------
 local sectionJ = Tabs.Settings:AddSection("Settings Tools")
 
@@ -407,12 +349,7 @@ sectionJ:AddButton({
 ---------------------------------------------------
 -- FINISH LOADING
 ---------------------------------------------------
-Fluent:Notify({
-    Title = "Navsploit v5",
-    Content = "Script Loaded Successfully!",
-    Duration = 8
-})
-
+Fluent:Notify({Title="Navsploit v5", Content="Script Loaded Successfully!", Duration=8})
 Window:SelectTab(1)
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
