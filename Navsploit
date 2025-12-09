@@ -1,0 +1,426 @@
+---------------------------------------------------
+-- WHITELIST (USERNAME-BASED)
+---------------------------------------------------
+local allowedUsers = {
+    ["Navmere"] = true,
+    ["RushRunnel"] = true,
+    ["Wbtr"] = true,
+    ["Currtency"] = true,
+ ["FearingLawrence"] = true,
+ ["kooooooooooooooooobe"] = true,
+}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+if not allowedUsers[LocalPlayer.Name] then
+    LocalPlayer:Kick("You are not whitelisted for Navsploit 5.")
+    return
+end
+
+---------------------------------------------------
+-- LOAD FLUENT UI
+---------------------------------------------------
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local RCFA = LocalPlayer
+local Character = RCFA.Character or RCFA.CharacterAdded:Wait()
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Options = Fluent.Options
+local Conn, Conn2
+
+RCFA.CharacterAdded:Connect(function(UpdatedCharacter)
+    Character = UpdatedCharacter
+    repeat task.wait() until UpdatedCharacter:FindFirstChild("Humanoid")
+    UpdatedCharacter.Humanoid.Changed:Connect(function()
+        UpdatedCharacter.Humanoid.WalkSpeed = Options.WalkSpeedSlider.Value
+        UpdatedCharacter.Humanoid.JumpPower = Options.JumpPowerSlider.Value
+    end)
+end)
+
+---------------------------------------------------
+-- MAIN WINDOW
+---------------------------------------------------
+local Window = Fluent:CreateWindow({
+    Title = "Navsploit 5",
+    SubTitle = "By Navmere",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main" }),
+    RCFA = Window:AddTab({ Title = "RCFA" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+---------------------------------------------------
+-- WALK SPEED
+---------------------------------------------------
+local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
+    Title = "Walk Speed",
+    Default = 14,
+    Min = 14,
+    Max = 50,
+    Rounding = 1,
+})
+
+wSlider:OnChanged(function(Value)
+    if Conn then Conn:Disconnect() end
+    if Character:FindFirstChild("Humanoid") then
+        Conn = Character.Humanoid.Changed:Connect(function()
+            Character.Humanoid.WalkSpeed = Value
+        end)
+    end
+end)
+
+---------------------------------------------------
+-- JUMP POWER
+---------------------------------------------------
+local JSlider = Tabs.RCFA:AddSlider("JumpPowerSlider", {
+    Title = "Jump Power",
+    Default = 40,
+    Min = 40,
+    Max = 100,
+    Rounding = 1,
+})
+
+JSlider:OnChanged(function(Value)
+    if Conn2 then Conn2:Disconnect() end
+    if Character:FindFirstChild("Humanoid") then
+        Conn2 = Character.Humanoid.Changed:Connect(function()
+            Character.Humanoid.JumpPower = Value
+        end)
+    end
+end)
+
+---------------------------------------------------
+-- RCFA BYPASSES
+---------------------------------------------------
+Tabs.RCFA:AddSection("Bypasses")
+
+Tabs.RCFA:AddButton({
+    Title = "MUST CLICK",
+    Description = "Disables LocalAntiCheat",
+    Callback = function()
+        local char = RCFA.Character
+        if char and char:FindFirstChild("Hitbox") and char.Hitbox:FindFirstChild("LocalAntiCheat") then
+            char.Hitbox.LocalAntiCheat.Disabled = true
+        end
+    end
+})
+
+Tabs.RCFA:AddButton({
+    Title = "ROPREPS BYPASS",
+    Description = "Disables Ropreps 11th Hitbox Child",
+    Callback = function()
+        local char = RCFA.Character
+        if char and char:FindFirstChild("Hitbox") and char.Hitbox:GetChildren()[11] then
+            char.Hitbox:GetChildren()[11].Disabled = true
+        end
+    end
+})
+
+---------------------------------------------------
+-- HITBOX SYSTEM
+---------------------------------------------------
+local hitboxSize = Vector3.new(2, 4, 2)
+local hitboxTransparencyValue = 1
+local hitboxCanCollide = false
+local hitboxVisible = false
+
+local function updateHitbox()
+    local char = RCFA.Character
+    if not char then return end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local hitbox = root:FindFirstChild("Hitbox")
+    if not hitbox then
+        hitbox = Instance.new("Part")
+        hitbox.Name = "Hitbox"
+        hitbox.Size = hitboxSize
+        hitbox.Transparency = hitboxTransparencyValue
+        hitbox.CanCollide = hitboxCanCollide
+        hitbox.Material = Enum.Material.ForceField
+        hitbox.Massless = true
+        hitbox.Parent = char
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = hitbox
+        weld.Part1 = root
+        weld.Parent = hitbox
+    end
+
+    hitbox.Size = hitboxSize
+    hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
+end
+
+local hitboxSlider = Tabs.RCFA:AddSlider("HitboxSizeSlider", {
+    Title = "Hitbox Size",
+    Default = 2,
+    Min = 2,
+    Max = 25,
+    Rounding = 1,
+})
+
+hitboxSlider:OnChanged(function(v)
+    hitboxSize = Vector3.new(v, v + 2, v)
+    updateHitbox()
+end)
+
+Tabs.RCFA:AddToggle("VisibleHB", {
+    Title = "Visible Hitbox (ON/OFF)",
+    Default = false
+}):OnChanged(function(state)
+    hitboxVisible = state
+    local char = RCFA.Character
+    if char and char:FindFirstChild("Hitbox") then
+        char.Hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
+    end
+end)
+
+---------------------------------------------------
+-- AUTO TUCK
+---------------------------------------------------
+local autoTuckEnabled = false
+local autoTuckConnection
+local autoTuckBind = Enum.KeyCode.RightBracket
+
+local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
+    Title = "Auto Tuck (ON/OFF)",
+    Default = false
+})
+
+Tabs.RCFA:AddInput("AutoTuckKeyBind", {
+    Title = "Auto Tuck Keybind",
+    Default = autoTuckBind.Name,
+    Placeholder = "Press any key..."
+}):OnChanged(function(text)
+    local key = Enum.KeyCode[text]
+    if key then
+        autoTuckBind = key
+        Fluent:Notify({Title="Navsploit", Content="Auto Tuck Keybind: "..text, Duration=3})
+    end
+end)
+
+local function setupAutoTuck()
+    if autoTuckConnection then autoTuckConnection:Disconnect() autoTuckConnection=nil end
+    if autoTuckEnabled then
+        local char = RCFA.Character
+        if char then
+            autoTuckConnection = char.ChildAdded:Connect(function(child)
+                if child.Name=="Football" then
+                    task.wait(0.1)
+                    local handle = child:FindFirstChild("Handle")
+                    if handle and handle:FindFirstChild("RemoteEvent") then
+                        handle.RemoteEvent:FireServer({{"Tuck"}})
+                    end
+                end
+            end)
+        end
+    end
+end
+
+autoTuckToggle:OnChanged(function(state)
+    autoTuckEnabled = state
+    setupAutoTuck()
+end)
+
+UserInputService.InputBegan:Connect(function(input,gpe)
+    if not gpe and input.KeyCode==autoTuckBind then
+        autoTuckEnabled = not autoTuckEnabled
+        autoTuckToggle:SetValue(autoTuckEnabled)
+        Fluent:Notify({Title="Navsploit",Content="Auto Tuck: "..(autoTuckEnabled and "ON" or "OFF"), Duration=3})
+        setupAutoTuck()
+    end
+end)
+
+---------------------------------------------------
+-- AUTO TRUCK
+---------------------------------------------------
+local autoTruckEnabled = false
+local autoTruckConnection
+
+Tabs.RCFA:AddToggle("AutoTruckToggle",{Title="Auto Truck", Default=false}):OnChanged(function(state)
+    autoTruckEnabled = state
+    if autoTruckConnection then autoTruckConnection:Disconnect() end
+    if autoTruckEnabled then
+        autoTruckConnection = RunService.RenderStepped:Connect(function()
+            for _,plr in pairs(Players:GetPlayers()) do
+                if plr~=RCFA and plr.Character and plr.Character.PrimaryPart and RCFA.Character and RCFA.Character.PrimaryPart then
+                    local dist = (RCFA.Character.PrimaryPart.Position - plr.Character.PrimaryPart.Position).Magnitude
+                    if dist<=10 then
+                        local football = RCFA.Character:FindFirstChild("Football")
+                        if football and football:FindFirstChild("Handle") then
+                            football.Handle.RemoteEvent:FireServer({[1]={[1]="Truck",[2]=true}})
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+---------------------------------------------------
+-- DECREASE HITBOX
+---------------------------------------------------
+Tabs.RCFA:AddInput("DecreaseHitbox",{Title="Decrease Hitbox",Default="",Placeholder="Enter number..."}):OnChanged(function(text)
+    local b = tonumber(text)
+    if not b then return end
+    local char = RCFA.Character
+    if char and char:FindFirstChild("Hitbox") then
+        char.Hitbox.Size = Vector3.new(b-2,b-2,b-2)
+    end
+end)
+
+---------------------------------------------------
+-- MAGNET
+---------------------------------------------------
+local magnetValue=nil
+Tabs.RCFA:AddInput("MagnetBox",{Title="Magnet Range",Placeholder="Type range..."}):OnChanged(function(text)
+    local num = tonumber(text)
+    magnetValue = num or nil
+end)
+
+task.spawn(function()
+    while task.wait() do
+        if magnetValue then
+            local char = RCFA.Character
+            if char and char:FindFirstChild("Hitbox") then
+                char.Hitbox.Size = Vector3.new(magnetValue+3, magnetValue+5, magnetValue+3)
+            end
+        end
+    end
+end)
+
+---------------------------------------------------
+-- OL/DL (BODYVELOCITY)
+---------------------------------------------------
+local BVTable = {}
+local bvEnabled = true
+local bvBind = Enum.KeyCode.LeftBracket
+
+local bvToggle = Tabs.RCFA:AddToggle("OLDLToggle",{Title="OL/DL (BV Destroy)", Default=true})
+
+Tabs.RCFA:AddInput("OLDLKeyBind",{
+    Title="OL/DL Keybind",
+    Default=bvBind.Name,
+    Placeholder="Press key..."
+}):OnChanged(function(text)
+    local key = Enum.KeyCode[text]
+    if key then
+        bvBind = key
+        Fluent:Notify({Title="Navsploit",Content="OL/DL Keybind: "..text, Duration=3})
+    end
+end)
+
+bvToggle:OnChanged(function(state)
+    bvEnabled = state
+    if not bvEnabled then
+        for _,bv in pairs(BVTable) do if bv.Parent then bv:Clone().Parent=bv.Parent end end
+        BVTable = {}
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input,gpe)
+    if not gpe and input.KeyCode==bvBind then
+        bvEnabled = not bvEnabled
+        bvToggle:SetValue(bvEnabled)
+        Fluent:Notify({Title="Navsploit",Content="OL/DL: "..(bvEnabled and "ON" or "OFF"), Duration=3})
+        if not bvEnabled then
+            for _,bv in pairs(BVTable) do if bv.Parent then bv:Clone().Parent=bv.Parent end end
+            BVTable = {}
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait() do
+        local char = RCFA.Character
+        if char then
+            for _,v in pairs(char:GetDescendants()) do
+                if v:IsA("BodyVelocity") and v.Name ~= RCFA.Name then
+                    if bvEnabled then
+                        table.insert(BVTable, v:Clone())
+                        v:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+---------------------------------------------------
+-- SETTINGS → INFINITE YIELD + TIME/BRIGHTNESS
+---------------------------------------------------
+local sectionJ = Tabs.Settings:AddSection("Settings Tools")
+
+sectionJ:AddButton({
+    Title = "Infinite Yield",
+    Description = "Loads Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        Fluent:Notify({Title="Navsploit",Content="Infinite Yield Loaded!",Duration=4})
+    end
+})
+
+sectionJ:AddLabel("CLOCK")
+
+sectionJ:AddTextField("BRIGHTNESS","Enter number",function(value)
+    local n = tonumber(value)
+    if n then game.Lighting.Brightness = n end
+end)
+
+sectionJ:AddTextField("TIME","Enter number",function(value)
+    local n = tonumber(value)
+    if n then game.Lighting.ClockTime = n end
+end)
+
+---------------------------------------------------
+-- THEMES
+---------------------------------------------------
+local sectionThemes = Tabs.Settings:AddSection("Hub Themes")
+
+local themes = {
+    ["Dark"]   = {Primary=Color3.fromRGB(30,30,30), Accent=Color3.fromRGB(0,170,255)},
+    ["Light"]  = {Primary=Color3.fromRGB(240,240,240), Accent=Color3.fromRGB(0,120,255)},
+    ["Red"]    = {Primary=Color3.fromRGB(50,0,0), Accent=Color3.fromRGB(255,0,0)},
+    ["Green"]  = {Primary=Color3.fromRGB(0,50,0), Accent=Color3.fromRGB(0,255,0)},
+    ["Blue"]   = {Primary=Color3.fromRGB(0,0,50), Accent=Color3.fromRGB(0,170,255)},
+    ["Purple"] = {Primary=Color3.fromRGB(50,0,50), Accent=Color3.fromRGB(170,0,255)},
+}
+
+sectionThemes:AddDropdown("ThemeSelector",{
+    Title="Select Theme",
+    Default="Dark",
+    Options={"Dark","Light","Red","Green","Blue","Purple"},
+    MultiSelect=false
+}):OnChanged(function(selected)
+    local theme = themes[selected]
+    if theme then
+        Fluent:SetPrimaryColor(theme.Primary)
+        Fluent:SetAccentColor(theme.Accent)
+        Fluent:Notify({Title="Navsploit",Content="Theme changed to "..selected,Duration=3})
+    end
+end)
+
+---------------------------------------------------
+-- FINISH LOADING
+---------------------------------------------------
+Fluent:Notify({Title="Navsploit v5", Content="Script Loaded Successfully!", Duration=8})
+Window:SelectTab(1)
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:SetFolder("FluentScriptHub")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
