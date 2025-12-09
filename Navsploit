@@ -255,9 +255,7 @@ end)
 ---------------------------------------------------
 -- AUTO-TUCK SYSTEM
 ---------------------------------------------------
----------------------------------------------------
--- AUTO-TUCK SYSTEM
----------------------------------------------------
+-- REPLACED WITH FIXED AUTO-TUCK (handles different football placements, descendants, and remotes)
 local autoTuckEnabled = false
 local autoTuckConnection
 local autoTuckBind = Enum.KeyCode.RightBracket
@@ -270,21 +268,44 @@ local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
 Tabs.RCFA:AddInput("AutoTuckKeyBind", {
     Title = "Auto Tuck Keybind",
     Default = autoTuckBind.Name,
-    Placeholder = "Press any key..."
+    Placeholder = "Press key..."
 }):OnChanged(function(text)
     local key = Enum.KeyCode[text]
     if key then
         autoTuckBind = key
-        Fluent:Notify({Title="Navsploit", Content="Auto Tuck Keybind set to "..text, Duration=3})
+        Fluent:Notify({Title="Navsploit", Content="Auto Tuck Keybind: "..text, Duration=3})
     end
 end)
 
-local function doTuck(football)
-    if football and football:FindFirstChild("Handle") then
-        local handle = football.Handle
-        local remote = handle:FindFirstChild("RemoteEvent")
-        if remote then
-            remote:FireServer({{"Tuck"}})
+local function fireTuckRemote(tool)
+    if not tool then return end
+
+    -- case 1: Remote under Handle (most common)
+    if tool:FindFirstChild("Handle") then
+        local remoteInHandle = tool.Handle:FindFirstChildWhichIsA("RemoteEvent")
+        if remoteInHandle then
+            -- many games expect a string or table; try both common forms
+            pcall(function() remoteInHandle:FireServer("Tuck") end)
+            pcall(function() remoteInHandle:FireServer({{"Tuck"}}) end)
+            return
+        end
+    end
+
+    -- case 2: Remote directly under tool
+    local remote = tool:FindFirstChildWhichIsA("RemoteEvent")
+    if remote then
+        pcall(function() remote:FireServer("Tuck") end)
+        pcall(function() remote:FireServer({{"Tuck"}}) end)
+    end
+end
+
+local function scanForFootball(char)
+    for _, child in ipairs(char:GetChildren()) do
+        if child.Name and child.Name:lower():find("football") then
+            fireTuckRemote(child)
+        elseif child:FindFirstChild("Handle") then
+            -- some tools may not be named football but have Handle and remote
+            fireTuckRemote(child)
         end
     end
 end
@@ -299,17 +320,20 @@ local function setupAutoTuck()
         local char = RCFA.Character
         if not char then return end
 
-        -- Check if football already exists
-        local football = char:FindFirstChild("Football")
-        if football then
-            doTuck(football)
-        end
+        -- instant tuck if ball already exists
+        scanForFootball(char)
 
-        -- Listen for future football spawns
-        autoTuckConnection = char.ChildAdded:Connect(function(child)
-            if child.Name == "Football" then
-                task.wait(0.1) -- wait a tiny bit for the handle
-                doTuck(child)
+        -- detect ANY football/descendant added anywhere in character
+        autoTuckConnection = char.DescendantAdded:Connect(function(desc)
+            if not desc or not desc.Name then return end
+            if desc.Name:lower():find("football") then
+                task.wait(0.15)
+                -- descend might be the Handle or the tool; find nearest parent tool
+                local tool = desc
+                if not desc:FindFirstChildWhichIsA("RemoteEvent") then
+                    tool = desc:FindFirstAncestorOfClass("Tool") or desc.Parent
+                end
+                fireTuckRemote(tool)
             end
         end)
     end
@@ -320,9 +344,8 @@ autoTuckToggle:OnChanged(function(state)
     setupAutoTuck()
 end)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == autoTuckBind then
+UserInputService.InputBegan:Connect(function(input,gpe)
+    if not gpe and input.KeyCode == autoTuckBind then
         autoTuckEnabled = not autoTuckEnabled
         autoTuckToggle:SetValue(autoTuckEnabled)
         Fluent:Notify({
@@ -401,6 +424,56 @@ sectionJ:AddButton({
         loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     end
 })
+
+---------------------------------------------------
+-- THEME SELECTOR (added under Settings)
+---------------------------------------------------
+sectionJ:AddDropdown("ThemeSelector", {
+    Title = "UI Theme",
+    Values = {
+        "Dark",
+        "Light",
+        "Acrylic",
+        "Nord",
+        "Amethyst",
+        "Ocean",
+        "Darker"
+    },
+    Multi = false,
+    Default = "Dark"
+}):OnChanged(function(theme)
+    -- attempt to set theme using available methods (be tolerant)
+    local ok,err = pcall(function()
+        if type(Fluent.Themes) == "table" and Fluent.Themes[theme] ~= nil then
+            if Window.SetTheme then
+                Window:SetTheme(Fluent.Themes[theme])
+            else
+                -- fallback: try assigning Theme property if available
+                pcall(function() Window.Theme = Fluent.Themes[theme] end)
+            end
+        else
+            -- fallback: try passing string
+            if Window.SetTheme then
+                Window:SetTheme(theme)
+            else
+                pcall(function() Window.Theme = theme end)
+            end
+        end
+    end)
+    if not ok then
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Theme change attempted; if it didn't apply please try a different option.",
+            Duration = 4
+        })
+    else
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Theme changed to "..theme,
+            Duration = 3
+        })
+    end
+end)
 
 ---------------------------------------------------
 -- CLOCK SETTINGS
