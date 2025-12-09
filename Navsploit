@@ -10,9 +10,7 @@ local allowedUsers = {
     ["kooooooooooooooooobe"] = true,
     ["gaymute"] = true,
     ["newtrackrunners"] = true,
-    ["keekhqq"] = true,
-    ["Xy3zzy"] = true,
-
+    ["keehqq"] = true,
 }
 
 local Players = game:GetService("Players")
@@ -187,7 +185,35 @@ Tabs.RCFA:AddToggle("VisibleHB", {
         char.Hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
     end
 end)
+---------------------------------------------------
+-- MAGNET SYSTEM
+---------------------------------------------------
+local magnetValue = nil
 
+Tabs.RCFA:AddInput("MagnetBox", {
+    Title = "Magnet Range",
+    Default = "",
+    Placeholder = "Enter range..."
+}):OnChanged(function(text)
+    local num = tonumber(text)
+    if num then
+        magnetValue = num
+    else
+        magnetValue = nil
+    end
+end)
+
+-- Adjust hitbox size based on magnet value
+task.spawn(function()
+    while task.wait() do
+        if magnetValue then
+            local char = RCFA.Character
+            if char and char:FindFirstChild("Hitbox") then
+                char.Hitbox.Size = Vector3.new(magnetValue + 3, magnetValue + 5, magnetValue + 3)
+            end
+        end
+    end
+end)
 ---------------------------------------------------
 -- AUTO-TUCK SYSTEM
 ---------------------------------------------------
