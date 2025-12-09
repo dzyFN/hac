@@ -193,18 +193,19 @@ Tabs.RCFA:AddToggle("VisibleHB", {
 end)
 
 ---------------------------------------------------
--- AUTO TUCK
+-- AUTO-TUCK SYSTEM WITH KEYBIND
 ---------------------------------------------------
+local UserInputService = game:GetService("UserInputService")
 local autoTuckEnabled = false
 local autoTuckConnection
-local autoTuckBind = Enum.KeyCode.RightBracket
+local autoTuckBind = Enum.KeyCode.RightBracket -- default key
 
-local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
+local autoTuckToggle = Tabs.Local:AddToggle("AutoTuckToggle", {
     Title = "Auto Tuck (ON/OFF)",
     Default = false
 })
 
-Tabs.RCFA:AddInput("AutoTuckKeyBind", {
+local keyInput = Tabs.Local:AddInput("AutoTuckKeyBind", {
     Title = "Auto Tuck Keybind",
     Default = autoTuckBind.Name,
     Placeholder = "Press any key..."
@@ -212,21 +213,29 @@ Tabs.RCFA:AddInput("AutoTuckKeyBind", {
     local key = Enum.KeyCode[text]
     if key then
         autoTuckBind = key
-        Fluent:Notify({Title="Navsploit", Content="Auto Tuck Keybind: "..text, Duration=3})
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Auto Tuck Keybind set to: "..text,
+            Duration = 3
+        })
     end
 end)
 
 local function setupAutoTuck()
-    if autoTuckConnection then autoTuckConnection:Disconnect() autoTuckConnection=nil end
+    if autoTuckConnection then
+        autoTuckConnection:Disconnect()
+        autoTuckConnection = nil
+    end
     if autoTuckEnabled then
-        local char = RCFA.Character
+        local char = Local.Character
         if char then
             autoTuckConnection = char.ChildAdded:Connect(function(child)
-                if child.Name=="Football" then
+                if child.Name == "Football" then
                     task.wait(0.1)
                     local handle = child:FindFirstChild("Handle")
                     if handle and handle:FindFirstChild("RemoteEvent") then
-                        handle.RemoteEvent:FireServer({{"Tuck"}})
+                        local args = {{"Tuck"}}
+                        handle.RemoteEvent:FireServer(unpack(args))
                     end
                 end
             end)
@@ -239,14 +248,26 @@ autoTuckToggle:OnChanged(function(state)
     setupAutoTuck()
 end)
 
-UserInputService.InputBegan:Connect(function(input,gpe)
-    if not gpe and input.KeyCode==autoTuckBind then
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == autoTuckBind then
         autoTuckEnabled = not autoTuckEnabled
         autoTuckToggle:SetValue(autoTuckEnabled)
-        Fluent:Notify({Title="Navsploit",Content="Auto Tuck: "..(autoTuckEnabled and "ON" or "OFF"), Duration=3})
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Auto Tuck: "..(autoTuckEnabled and "Enabled" or "Disabled"),
+            Duration = 3
+        })
         setupAutoTuck()
     end
 end)
+
+Local.CharacterAdded:Connect(function(char)
+    if autoTuckEnabled then
+        setupAutoTuck()
+    end
+end)
+
 
 ---------------------------------------------------
 -- AUTO TRUCK
