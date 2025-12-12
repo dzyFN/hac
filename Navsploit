@@ -11,7 +11,9 @@ local allowedUsers = {
     ["gaymute"] = true,
     ["newtrackrunners"] = true,
   ["Pacablly"] = true,
+  ["ddriIIy"] = true,
     ["keehqq"] = true,
+
 }
 
 local Players = game:GetService("Players")
