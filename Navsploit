@@ -2,7 +2,7 @@
 -- WHITELIST (USERNAME-BASED)
 ---------------------------------------------------
 local allowedUsers = {
-    ["Navmere"] = true,
+    ["edgerusherr"] = true,
     ["RushRunnel"] = true,
     ["Wbtr"] = true,
     ["Currtency"] = true,
