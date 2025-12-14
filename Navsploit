@@ -14,7 +14,7 @@ local allowedUsers = {
   ["ddriIIy"] = true,
     ["keehqq"] = true,
  ["y2ofein"] = true,
-
+ ["nextcrisis"] = true,
 
 }
 
@@ -27,9 +27,6 @@ if not allowedUsers[LocalPlayer.Name] then
     return
 end
 
----------------------------------------------------
--- LOAD FLUENT UI
----------------------------------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -92,23 +89,39 @@ local Tabs = {
 }
 
 ---------------------------------------------------
--- WALK SPEED
+-- WALK SPEED (Manual Toggle)
 ---------------------------------------------------
+local walkSpeedEnabled = false -- toggle OFF by default
+local walkSpeedValue = 14 -- default slider value
+
+-- Slider for WalkSpeed
 local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
     Title = "Walk Speed",
     Default = 14,
     Min = 14,
     Max = 50,
     Rounding = 1,
-})
-wSlider:OnChanged(function(Value)
-    if Conn then Conn:Disconnect() end
-    if Character and Character:FindFirstChild("Humanoid") then
-        Conn = Character.Humanoid.Changed:Connect(function()
-            Character.Humanoid.WalkSpeed = Value
-        end)
+}):OnChanged(function(Value)
+    walkSpeedValue = Value
+    -- Only apply if the toggle is ON
+    if walkSpeedEnabled and Character and Character:FindFirstChild("Humanoid") then
+        Character.Humanoid.WalkSpeed = walkSpeedValue
     end
 end)
+
+-- Toggle to enable/disable WalkSpeed
+Tabs.RCFA:AddToggle("WalkSpeedToggle", {
+    Title = "Enable WalkSpeed",
+    Default = false
+}):OnChanged(function(state)
+    walkSpeedEnabled = state
+    if walkSpeedEnabled and Character and Character:FindFirstChild("Humanoid") then
+        Character.Humanoid.WalkSpeed = walkSpeedValue -- apply current slider value
+    end
+end)
+
+
+
 
 ---------------------------------------------------
 -- JUMP POWER
@@ -129,15 +142,19 @@ JSlider:OnChanged(function(Value)
     end
 end)
 
----------------------------------------------------
--- RCFA BYPASSES
----------------------------------------------------
 Tabs.RCFA:AddSection("Bypasses")
 
+-- Track which bypasses are enabled
+local bypassMUSTCLICKEnabled = false
+local bypassRoprepsEnabled = false
+local bypassRoprepV2Enabled = false
+
+-- MUST CLICK Bypass
 Tabs.RCFA:AddButton({
     Title = "MUST CLICK",
     Description = "Disables LocalAntiCheat",
     Callback = function()
+        bypassMUSTCLICKEnabled = true
         local char = RCFA.Character
         if char and char:FindFirstChild("Hitbox") and char.Hitbox:FindFirstChild("LocalAntiCheat") then
             char.Hitbox.LocalAntiCheat.Disabled = true
@@ -145,10 +162,12 @@ Tabs.RCFA:AddButton({
     end
 })
 
+-- ROPREPS Bypass
 Tabs.RCFA:AddButton({
     Title = "ROPREPS BYPASS",
     Description = "Disables Ropreps 11th Hitbox Child",
     Callback = function()
+        bypassRoprepsEnabled = true
         local char = RCFA.Character
         if char and char:FindFirstChild("Hitbox") and char.Hitbox:GetChildren()[11] then
             char.Hitbox:GetChildren()[11].Disabled = true
@@ -156,13 +175,14 @@ Tabs.RCFA:AddButton({
     end
 })
 
+-- ROPREP v2 Bypass
 Tabs.RCFA:AddButton({
     Title = "ROPREP BYPASS v2",
     Description = "Disables ONLY the circled Hitbox LocalScript",
     Callback = function()
+        bypassRoprepV2Enabled = true
         local char = RCFA.Character
         if not char then return end
-
         local hitbox = char:FindFirstChild("Hitbox")
         if not hitbox then return end
 
@@ -191,6 +211,42 @@ Tabs.RCFA:AddButton({
 })
 
 ---------------------------------------------------
+-- REAPPLY BYPASSES AFTER RESPAWN
+---------------------------------------------------
+RCFA.CharacterAdded:Connect(function(char)
+    Character = char
+    local humanoid = char:WaitForChild("Humanoid")
+
+    -- Reapply WalkSpeed and JumpPower
+    humanoid.Changed:Connect(function()
+        humanoid.WalkSpeed = Options.WalkSpeedSlider.Value
+        humanoid.JumpPower = Options.JumpPowerSlider.Value
+    end)
+
+    -- Wait for Hitbox
+    local hitbox = char:WaitForChild("Hitbox", 5)
+    if hitbox then
+        if bypassMUSTCLICKEnabled and hitbox:FindFirstChild("LocalAntiCheat") then
+            hitbox.LocalAntiCheat.Disabled = true
+        end
+        if bypassRoprepsEnabled and hitbox:GetChildren()[11] then
+            hitbox:GetChildren()[11].Disabled = true
+        end
+        if bypassRoprepV2Enabled then
+            local localScripts = {}
+            for _, child in ipairs(hitbox:GetChildren()) do
+                if child:IsA("LocalScript") then
+                    table.insert(localScripts, child)
+                end
+            end
+            if #localScripts >= 2 then
+                localScripts[1].Disabled = true
+            end
+        end
+    end
+end)
+
+---------------------------------------------------
 -- HITBOX SYSTEM
 ---------------------------------------------------
 local hitboxSize = Vector3.new(2,4,2)
@@ -201,6 +257,7 @@ local hitboxVisible = false
 local function updateHitbox()
     local char = RCFA.Character
     if not char then return end
+
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
@@ -210,9 +267,15 @@ local function updateHitbox()
         hitbox.Name = "Hitbox"
         hitbox.Size = hitboxSize
         hitbox.Transparency = hitboxTransparencyValue
-        hitbox.CanCollide = hitboxCanCollide
+
+        -- 🔴 SEAT TELEPORT FIX
+        hitbox.CanCollide = false
+        hitbox.CanTouch = false
+        hitbox.CanQuery = false
+
         hitbox.Material = Enum.Material.ForceField
         hitbox.Massless = true
+        hitbox.Anchored = false
         hitbox.Parent = char
 
         local weld = Instance.new("WeldConstraint")
@@ -224,6 +287,7 @@ local function updateHitbox()
     hitbox.Size = hitboxSize
     hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
 end
+
 
 local hitboxSlider = Tabs.RCFA:AddSlider("HitboxSizeSlider", {
     Title = "Hitbox Size",
@@ -282,29 +346,28 @@ end)
 ---------------------------------------------------
 local autoTuckEnabled = false
 local autoTuckBind = Enum.KeyCode.RightBracket -- default key
+local autoTuckConnection
+local waitingForBind = false
 
+-- GUI Toggle
 local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
     Title = "Auto Tuck (ON/OFF)",
     Default = false
 })
 
-local keyInput = Tabs.RCFA:AddInput("AutoTuckKeyBind", {
-    Title = "Auto Tuck Keybind",
-    Default = autoTuckBind.Name,
-    Placeholder = "Press any key..."
-}):OnChanged(function(text)
-    local key = Enum.KeyCode[text]
-    if key then
-        autoTuckBind = key
-        Fluent:Notify({
-            Title = "Navsploit",
-            Content = "Auto Tuck Keybind set to: "..text,
-            Duration = 3
-        })
+-- GUI Button to set keybind
+Tabs.RCFA:AddButton({
+    Title = "Set AutoTuck Key",
+    Description = "Press any key or controller button",
+    Callback = function()
+        waitingForBind = true
+        Fluent:Notify({Title="Navsploit", Content="Press a key or controller button to bind Auto Tuck...", Duration=3})
     end
-end)
+})
 
+-- Setup AutoTuck connection
 local function setupAutoTuck()
+    -- Disconnect previous connection if exists
     if autoTuckConnection then
         autoTuckConnection:Disconnect()
         autoTuckConnection = nil
@@ -322,14 +385,28 @@ local function setupAutoTuck()
     end
 end
 
+-- Toggle from GUI
 autoTuckToggle:OnChanged(function(state)
     autoTuckEnabled = state
     setupAutoTuck()
 end)
 
+-- Detect key/controller press
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if waitingForBind then
+        -- Set the bind directly from key or controller button
+        autoTuckBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        waitingForBind = false
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Auto Tuck Key set to: "..tostring(autoTuckBind),
+            Duration = 3
+        })
+        return
+    end
+
     if gameProcessed then return end
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == autoTuckBind then
+    if input.KeyCode == autoTuckBind or input.UserInputType == autoTuckBind then
         autoTuckEnabled = not autoTuckEnabled
         autoTuckToggle:SetValue(autoTuckEnabled)
         Fluent:Notify({
@@ -341,34 +418,48 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- Reapply AutoTuck on character respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1) -- wait for humanoid and children
+    setupAutoTuck()
+end)
+
+
+
 ---------------------------------------------------
--- OL/DL (BODYVELOCITY DESTROY)
+-- OL/DL (BODYVELOCITY DESTROY) WITH FLEXIBLE KEYBIND
 ---------------------------------------------------
 local BVTable = {}
 local bvEnabled = true
-local bvBind = Enum.KeyCode.LeftBracket
+local bvBind = Enum.KeyCode.LeftBracket -- default key
+local waitingForBVBind = false
 
+-- GUI Toggle
 local bvToggle = Tabs.RCFA:AddToggle("OLDLToggle", {
     Title = "OL/DL (BV Destroy)",
     Default = true
 })
 
-Tabs.RCFA:AddInput("OLDLKeyBind", {
-    Title = "OL/DL Keybind",
-    Default = bvBind.Name,
-    Placeholder = "Press key..."
-}):OnChanged(function(text)
-    local key = Enum.KeyCode[text]
-    if key then
-        bvBind = key
-        Fluent:Notify({Title="Navsploit", Content="OL/DL Keybind: "..text, Duration=3})
+-- GUI Button to set keybind
+Tabs.RCFA:AddButton({
+    Title = "Set OL/DL Key",
+    Description = "Press any key or controller button",
+    Callback = function()
+        waitingForBVBind = true
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Press any key or controller button to bind OL/DL...",
+            Duration = 3
+        })
     end
-end)
+})
 
+-- Toggle from GUI
 bvToggle:OnChanged(function(state)
     bvEnabled = state
 end)
 
+-- Main loop to destroy BodyVelocity
 task.spawn(function()
     while task.wait() and RCFA.Character do
         if bvEnabled then
@@ -385,17 +476,138 @@ task.spawn(function()
     end
 end)
 
-UserInputService.InputBegan:Connect(function(input,gpe)
-    if not gpe and input.KeyCode == bvBind then
-        bvEnabled = not bvEnabled
-        bvToggle:SetValue(bvEnabled)
-        Fluent:Notify({Title="Navsploit", Content="OL/DL "..(bvEnabled and "ON" or "OFF"), Duration=3})
+
+-- Reapply on character respawn (still disabled by default)
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if RBHEnabled and char:FindFirstChild("Hitbox") then
+        char.Hitbox.CanCollide = false
+        char.Hitbox.Size = Vector3.new(RBHSliderValue, RBHSliderValue+2, RBHSliderValue)
+        char.Hitbox.Transparency = 0.5
     end
 end)
 
----------------------------------------------------
--- SETTINGS TAB FIXED
----------------------------------------------------
+
+local NUVSAtoggleEnabled = false
+local NUVSAkeyBind = Enum.KeyCode.RightBracket -- default key
+local NUVSAwaitingForBind = false
+local NUVSAConnection
+
+-- Add new section
+local NUVSASection = Tabs.RCFA:AddSection("NUVSAv.2")
+
+-- GUI Toggle
+local NUVSAToggle = NUVSASection:AddToggle("NUVSAAutoTuckToggle", {
+    Title = "NUVSAv.2 Auto Tuck (ON/OFF)",
+    Default = false
+})
+
+-- GUI Button to set keybind
+NUVSASection:AddButton({
+    Title = "Set NUVSAv.2 AutoTuck Key",
+    Description = "Press any key or controller button",
+    Callback = function()
+        NUVSAwaitingForBind = true
+        Fluent:Notify({
+            Title = "NUVSAv.2",
+            Content = "Press any key or controller button to bind Auto Tuck...",
+            Duration = 3
+        })
+    end
+})
+
+-- Setup NUVSAv.2 AutoTuck
+local function setupNUVSAAutoTuck()
+    if NUVSAConnection then
+        NUVSAConnection:Disconnect()
+        NUVSAConnection = nil
+    end
+    if NUVSAtoggleEnabled and RCFA.Character then
+        NUVSAConnection = RCFA.Character.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") and child.Name == "Football" then
+                local config = RCFA.Character:FindFirstChild("Hitbox") 
+                if config and config:FindFirstChild("Configuration") and config.Configuration:FindFirstChild("CanTuck") then
+                    task.wait(0.1)
+                    config.Configuration.CanTuck.Value = true
+                    Fluent:Notify({
+                        Title = "NUVSAv.2",
+                        Content = "Football tucked via CanTuck!",
+                        Duration = 2
+                    })
+                end
+            end
+        end)
+    end
+end
+
+-- Toggle from GUI
+NUVSAToggle:OnChanged(function(state)
+    NUVSAtoggleEnabled = state
+    setupNUVSAAutoTuck()
+end)
+
+-- Detect key/controller press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if NUVSAwaitingForBind then
+        NUVSAkeyBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        NUVSAwaitingForBind = false
+        Fluent:Notify({
+            Title = "NUVSAv.2",
+            Content = "NUVSAv.2 Auto Tuck Key set to: "..tostring(NUVSAkeyBind),
+            Duration = 3
+        })
+        return
+    end
+
+    if gameProcessed then return end
+    if input.KeyCode == NUVSAkeyBind or input.UserInputType == NUVSAkeyBind then
+        NUVSAtoggleEnabled = not NUVSAtoggleEnabled
+        NUVSAToggle:SetValue(NUVSAtoggleEnabled)
+        Fluent:Notify({
+            Title = "NUVSAv.2",
+            Content = "NUVSAv.2 Auto Tuck: "..(NUVSAtoggleEnabled and "Enabled" or "Disabled"),
+            Duration = 1.5
+        })
+        setupNUVSAAutoTuck()
+    end
+end)
+
+-- Reapply NUVSAv.2 AutoTuck on respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    setupNUVSAAutoTuck()
+end)
+-- Detect key/controller press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if waitingForBVBind then
+        -- Set the bind directly from key or controller button
+        bvBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        waitingForBVBind = false
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "OL/DL Key set to: "..tostring(bvBind),
+            Duration = 3
+        })
+        return
+    end
+
+    if gameProcessed then return end
+    if input.KeyCode == bvBind or input.UserInputType == bvBind then
+        bvEnabled = not bvEnabled
+        bvToggle:SetValue(bvEnabled)
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "OL/DL "..(bvEnabled and "ON" or "OFF"),
+            Duration = 3
+        })
+    end
+end)
+
+-- Reapply OL/DL loop on character respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1) -- wait for character to load
+end)
+
 ---------------------------------------------------
 -- SETTINGS TAB FIXED & THEME SWITCH
 ---------------------------------------------------
