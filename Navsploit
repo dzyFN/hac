@@ -13,6 +13,8 @@ local allowedUsers = {
   ["Pacablly"] = true,
   ["ddriIIy"] = true,
     ["keehqq"] = true,
+ ["y2ofein"] = true,
+
 
 }
 
@@ -333,7 +335,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         Fluent:Notify({
             Title = "Navsploit",
             Content = "Auto Tuck: "..(autoTuckEnabled and "Enabled" or "Disabled"),
-            Duration = 3
+            Duration = 1.5
         })
         setupAutoTuck()
     end
