@@ -89,37 +89,24 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
+--------------------------------------------------
+-- WALK SPEED
 ---------------------------------------------------
--- WALK SPEED (Manual Toggle)
----------------------------------------------------
-local walkSpeedEnabled = false -- toggle OFF by default
-local walkSpeedValue = 10 -- default value
-
--- Slider for WalkSpeed
 local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
     Title = "Walk Speed",
-    Default = 10,
-    Min = 10,
+    Default = 14,
+    Min = 14,
     Max = 50,
     Rounding = 1,
-}):OnChanged(function(Value)
-    walkSpeedValue = Value
-    if walkSpeedEnabled and Character and Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.WalkSpeed = walkSpeedValue
+})
+wSlider:OnChanged(function(Value)
+    if Conn then Conn:Disconnect() end
+    if Character:FindFirstChild("Humanoid") then
+        Conn = Character.Humanoid.Changed:Connect(function()
+            Character.Humanoid.WalkSpeed = Value
+        end)
     end
 end)
-
--- Toggle to enable WalkSpeed
-Tabs.RCFA:AddToggle("WalkSpeedToggle", {
-    Title = "Enable WalkSpeed",
-    Default = false
-}):OnChanged(function(state)
-    walkSpeedEnabled = state
-    if walkSpeedEnabled and Character and Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.WalkSpeed = walkSpeedValue
-    end
-end)
-
 ---------------------------------------------------
 -- JUMP POWER
 ---------------------------------------------------
