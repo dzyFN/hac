@@ -15,6 +15,7 @@ local allowedUsers = {
     ["keehqq"] = true,
  ["y2ofein"] = true,
  ["nextcrisis"] = true,
+ ["glockyinmywaist"] = true,
  
  ["Binkfy"] = true,
 }
