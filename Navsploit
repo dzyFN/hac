@@ -580,95 +580,116 @@ RCFA.CharacterAdded:Connect(function(char)
 end)
 
 
-local NUVSAtoggleEnabled = false
-local NUVSAkeyBind = Enum.KeyCode.RightBracket -- default key
-local NUVSAwaitingForBind = false
-local NUVSAConnection
+---------------------------------------------------
+-- NUVSAv.2 AUTO-TUCK SYSTEM (FOOTBALL)
+---------------------------------------------------
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Add new section
-local NUVSASection = Tabs.RCFA:AddSection("NUVSAv.2")
+local FootballEvent = ReplicatedStorage:WaitForChild("FootballEvent")
 
--- GUI Toggle
-local NUVSAToggle = NUVSASection:AddToggle("NUVSAAutoTuckToggle", {
-    Title = "NUVSAv.2 Auto Tuck (ON/OFF)",
+local autoTuckEnabled = false
+local autoTuckBind = Enum.KeyCode.P -- DEFAULT KEY
+local waitingForBind = false
+
+---------------------------------------------------
+-- GUI TOGGLE
+---------------------------------------------------
+local autoTuckToggle = Tabs.RCFA:AddToggle("NUVSAv2AutoTuck", {
+    Title = "NUVSAv.2 Auto Tuck",
     Default = false
 })
 
--- GUI Button to set keybind
-NUVSASection:AddButton({
-    Title = "Set NUVSAv.2 AutoTuck Key",
+---------------------------------------------------
+-- KEYBIND BUTTON
+---------------------------------------------------
+Tabs.RCFA:AddButton({
+    Title = "Set AutoTuck Key",
     Description = "Press any key or controller button",
     Callback = function()
-        NUVSAwaitingForBind = true
+        waitingForBind = true
         Fluent:Notify({
-            Title = "NUVSAv.2",
-            Content = "Press any key or controller button to bind Auto Tuck...",
+            Title = "Navsploit",
+            Content = "Press any key / controller button...",
             Duration = 3
         })
     end
 })
 
--- Setup NUVSAv.2 AutoTuck
-local function setupNUVSAAutoTuck()
-    if NUVSAConnection then
-        NUVSAConnection:Disconnect()
-        NUVSAConnection = nil
-    end
-    if NUVSAtoggleEnabled and RCFA.Character then
-        NUVSAConnection = RCFA.Character.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") and child.Name == "Football" then
-                local config = RCFA.Character:FindFirstChild("Hitbox") 
-                if config and config:FindFirstChild("Configuration") and config.Configuration:FindFirstChild("CanTuck") then
-                    task.wait(0.1)
-                    config.Configuration.CanTuck.Value = true
-                    Fluent:Notify({
-                        Title = "NUVSAv.2",
-                        Content = "Football tucked via CanTuck!",
-                        Duration = 2
-                    })
-                end
-            end
-        end)
-    end
+---------------------------------------------------
+-- HELPERS
+---------------------------------------------------
+local function getConfig()
+    local char = RCFA.Character
+    if not char then return end
+    local hitbox = char:FindFirstChild("Hitbox")
+    if not hitbox then return end
+    return hitbox:FindFirstChild("Configuration")
 end
 
--- Toggle from GUI
-NUVSAToggle:OnChanged(function(state)
-    NUVSAtoggleEnabled = state
-    setupNUVSAAutoTuck()
+local function hasFootball()
+    local char = RCFA.Character
+    return char and char:FindFirstChild("Football")
+end
+
+---------------------------------------------------
+-- TOGGLE FROM GUI
+---------------------------------------------------
+autoTuckToggle:OnChanged(function(state)
+    autoTuckEnabled = state
+    Fluent:Notify({
+        Title = "Navsploit",
+        Content = "Auto Tuck "..(state and "Enabled" or "Disabled"),
+        Duration = 1.5
+    })
 end)
 
--- Detect key/controller press
+---------------------------------------------------
+-- INPUT HANDLER
+---------------------------------------------------
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if NUVSAwaitingForBind then
-        NUVSAkeyBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
-        NUVSAwaitingForBind = false
+    if gameProcessed then return end
+
+    -- SET KEYBIND
+    if waitingForBind then
+        autoTuckBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        waitingForBind = false
         Fluent:Notify({
-            Title = "NUVSAv.2",
-            Content = "NUVSAv.2 Auto Tuck Key set to: "..tostring(NUVSAkeyBind),
-            Duration = 3
+            Title = "Navsploit",
+            Content = "Auto Tuck key set to: "..tostring(autoTuckBind),
+            Duration = 1.5
         })
         return
     end
 
-    if gameProcessed then return end
-    if input.KeyCode == NUVSAkeyBind or input.UserInputType == NUVSAkeyBind then
-        NUVSAtoggleEnabled = not NUVSAtoggleEnabled
-        NUVSAToggle:SetValue(NUVSAtoggleEnabled)
-        Fluent:Notify({
-            Title = "NUVSAv.2",
-            Content = "NUVSAv.2 Auto Tuck: "..(NUVSAtoggleEnabled and "Enabled" or "Disabled"),
-            Duration = 0.5
-        })
-        setupNUVSAAutoTuck()
+    -- ACTUAL TUCK LOGIC
+    if not autoTuckEnabled then return end
+    if not hasFootball() then return end
+
+    if input.KeyCode == autoTuckBind or input.UserInputType == autoTuckBind then
+        local config = getConfig()
+        if not config then return end
+
+        -- Block illegal states
+        if config.Mode.Value == "Pass" or config.Mode.Value == "Snap" then
+            return
+        end
+
+        if not config.CanTuck.Value then
+            FootballEvent:FireServer({"Tuck"})
+        else
+            FootballEvent:FireServer({"UnTuck"})
+        end
     end
 end)
 
--- Reapply NUVSAv.2 AutoTuck on respawn
-RCFA.CharacterAdded:Connect(function(char)
+---------------------------------------------------
+-- CHARACTER RESPAWN SAFETY
+---------------------------------------------------
+RCFA.CharacterAdded:Connect(function()
     task.wait(1)
-    setupNUVSAAutoTuck()
 end)
+
 -- Detect key/controller press
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if waitingForBVBind then
