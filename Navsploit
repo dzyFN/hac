@@ -375,7 +375,7 @@ local function setupAutoTuck()
     if autoTuckEnabled and RCFA.Character then
         autoTuckConnection = RCFA.Character.ChildAdded:Connect(function(child)
             if child.Name == "Football" then
-                task.wait(0.1)
+                task.wait(0)
                 local handle = child:FindFirstChild("Handle")
                 if handle and handle:FindFirstChild("RemoteEvent") then
                     handle.RemoteEvent:FireServer({"Tuck"})
@@ -400,7 +400,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         Fluent:Notify({
             Title = "Navsploit",
             Content = "Auto Tuck Key set to: "..tostring(autoTuckBind),
-            Duration = 3
+            Duration = 1
         })
         return
     end
@@ -412,7 +412,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         Fluent:Notify({
             Title = "Navsploit",
             Content = "Auto Tuck: "..(autoTuckEnabled and "Enabled" or "Disabled"),
-            Duration = 1.5
+            Duration = 1
         })
         setupAutoTuck()
     end
@@ -636,7 +636,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         Fluent:Notify({
             Title = "NUVSAv.2",
             Content = "NUVSAv.2 Auto Tuck: "..(NUVSAtoggleEnabled and "Enabled" or "Disabled"),
-            Duration = 1.5
+            Duration = 0.5
         })
         setupNUVSAAutoTuck()
     end
