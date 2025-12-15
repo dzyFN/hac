@@ -476,36 +476,49 @@ task.spawn(function()
     end
 end)
 ---------------------------------------------------
--- DEX TOGGLE BUTTON
+-- DEX TOGGLE (CORRECT LINK)
 ---------------------------------------------------
-local dexLoaded = false
-local dexGui -- store reference to Dex GUI
+local dexEnabled = false
+local dexGuiName = "Dex" -- Dex usually names its ScreenGui this
 
 Tabs.RCFA:AddButton({
     Title = "Toggle Dex",
-    Description = "Load or unload Dex",
+    Description = "Enable / Disable Dex Explorer",
     Callback = function()
-        if not dexLoaded then
+        if not dexEnabled then
             -- Load Dex
-            local success, result = pcall(function()
-                dexGui = loadstring(game:HttpGet("https://raw.githubusercontent.com/ExploitPack/Dex/master/Main.lua"))()
+            pcall(function()
+                loadstring(game:HttpGet(
+                    "https://raw.githubusercontent.com/BigBoyTimme/New.Loadstring.Scripts/refs/heads/main/Dex.Explorer"
+                ))()
             end)
-            if success then
-                Fluent:Notify({Title="Navsploit", Content="Dex Loaded", Duration=3})
-                dexLoaded = true
-            else
-                Fluent:Notify({Title="Navsploit", Content="Failed to load Dex", Duration=3})
-            end
+
+            Fluent:Notify({
+                Title = "Navsploit",
+                Content = "Dex Loaded",
+                Duration = 3
+            })
+
+            dexEnabled = true
         else
-            -- Unload Dex (destroy GUI if exists)
-            if dexGui and dexGui.Parent then
-                dexGui:Destroy()
+            -- Remove Dex GUI safely
+            for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+                if gui.Name:lower():find("dex") then
+                    gui:Destroy()
+                end
             end
-            Fluent:Notify({Title="Navsploit", Content="Dex Unloaded", Duration=3})
-            dexLoaded = false
+
+            Fluent:Notify({
+                Title = "Navsploit",
+                Content = "Dex Unloaded",
+                Duration = 3
+            })
+
+            dexEnabled = false
         end
     end
 })
+
 
 RCFA.CharacterAdded:Connect(function(char)
     task.wait(1)
