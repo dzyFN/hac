@@ -475,6 +475,37 @@ task.spawn(function()
         end
     end
 end)
+---------------------------------------------------
+-- DEX TOGGLE BUTTON
+---------------------------------------------------
+local dexLoaded = false
+local dexGui -- store reference to Dex GUI
+
+Tabs.RCFA:AddButton({
+    Title = "Toggle Dex",
+    Description = "Load or unload Dex",
+    Callback = function()
+        if not dexLoaded then
+            -- Load Dex
+            local success, result = pcall(function()
+                dexGui = loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+            end)
+            if success then
+                Fluent:Notify({Title="Navsploit", Content="Dex Loaded", Duration=3})
+                dexLoaded = true
+            else
+                Fluent:Notify({Title="Navsploit", Content="Failed to load Dex", Duration=3})
+            end
+        else
+            -- Unload Dex (destroy GUI if exists)
+            if dexGui and dexGui.Parent then
+                dexGui:Destroy()
+            end
+            Fluent:Notify({Title="Navsploit", Content="Dex Unloaded", Duration=3})
+            dexLoaded = false
+        end
+    end
+})
 
 
 -- Reapply on character respawn (still disabled by default)
