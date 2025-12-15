@@ -425,6 +425,34 @@ RCFA.CharacterAdded:Connect(function(char)
 end)
 
 
+---------------------------------------------------
+-- OOB INNEL ROPREP TOGGLE
+---------------------------------------------------
+local oobEnabled = true -- start enabled
+
+Tabs.RCFA:AddToggle("OOBInnELToggle", {
+    Title = "OOB InnEL ROPREP",
+    Default = true,
+}):OnChanged(function(state)
+    oobEnabled = state
+    local oobScriptFolder = workspace:FindFirstChild("Field")
+        and workspace.Field:FindFirstChild("OOB Area")
+        and workspace.Field["OOB Area"]:FindFirstChild("OOB Script Blocks")
+
+    if oobScriptFolder then
+        for _, child in ipairs(oobScriptFolder:GetChildren()) do
+            if child:IsA("Script") then
+                child.Disabled = not oobEnabled
+            end
+        end
+    end
+
+    Fluent:Notify({
+        Title = "Navsploit",
+        Content = "OOB InnEL Scripts "..(oobEnabled and "Enabled" or "Disabled"),
+        Duration = 3
+    })
+end)
 
 ---------------------------------------------------
 -- OL/DL (BODYVELOCITY DESTROY) WITH FLEXIBLE KEYBIND
