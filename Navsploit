@@ -476,10 +476,9 @@ task.spawn(function()
     end
 end)
 ---------------------------------------------------
--- DEX TOGGLE (CORRECT LINK)
+-- DEX TOGGLE (FULL CLEAN)
 ---------------------------------------------------
 local dexEnabled = false
-local dexGuiName = "Dex" -- Dex usually names its ScreenGui this
 
 Tabs.RCFA:AddButton({
     Title = "Toggle Dex",
@@ -501,7 +500,7 @@ Tabs.RCFA:AddButton({
 
             dexEnabled = true
         else
-            -- Remove Dex GUI safely
+            -- Remove ALL Dex GUIs
             for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
                 if gui.Name:lower():find("dex") then
                     gui:Destroy()
@@ -510,7 +509,7 @@ Tabs.RCFA:AddButton({
 
             Fluent:Notify({
                 Title = "Navsploit",
-                Content = "Dex Unloaded",
+                Content = "Dex Fully Unloaded",
                 Duration = 3
             })
 
@@ -518,6 +517,7 @@ Tabs.RCFA:AddButton({
         end
     end
 })
+
 
 
 RCFA.CharacterAdded:Connect(function(char)
