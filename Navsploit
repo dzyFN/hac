@@ -488,7 +488,7 @@ Tabs.RCFA:AddButton({
         if not dexLoaded then
             -- Load Dex
             local success, result = pcall(function()
-                dexGui = loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+                dexGui = loadstring(game:HttpGet("https://raw.githubusercontent.com/ExploitPack/Dex/master/Main.lua"))()
             end)
             if success then
                 Fluent:Notify({Title="Navsploit", Content="Dex Loaded", Duration=3})
@@ -507,8 +507,6 @@ Tabs.RCFA:AddButton({
     end
 })
 
-
--- Reapply on character respawn (still disabled by default)
 RCFA.CharacterAdded:Connect(function(char)
     task.wait(1)
     if RBHEnabled and char:FindFirstChild("Hitbox") then
