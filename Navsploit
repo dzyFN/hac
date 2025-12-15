@@ -15,7 +15,7 @@ local allowedUsers = {
     ["keehqq"] = true,
  ["y2ofein"] = true,
  ["nextcrisis"] = true,
- ["5_89k"] = true,
+ 
  ["Binkfy"] = true,
 }
 
