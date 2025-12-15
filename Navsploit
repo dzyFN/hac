@@ -1,6 +1,3 @@
----------------------------------------------------
--- WHITELIST (USERNAME-BASED)
----------------------------------------------------
 local allowedUsers = {
     ["edgerusherr"] = true,
     ["RushRunnel"] = true,
