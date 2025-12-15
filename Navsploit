@@ -87,23 +87,62 @@ local Tabs = {
     RCFA = Window:AddTab({ Title = "RCFA" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
+local speedEnabled = false
+local speedConnection
+local originalSpeed
 
---------------------------------------------------
--- WALK SPEED
----------------------------------------------------
 local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
     Title = "Walk Speed",
-    Default = 14,
+    Default = 16, -- does NOT apply unless enabled
     Min = 14,
     Max = 50,
     Rounding = 1,
 })
-wSlider:OnChanged(function(Value)
-    if Conn then Conn:Disconnect() end
-    if Character:FindFirstChild("Humanoid") then
-        Conn = Character.Humanoid.Changed:Connect(function()
-            Character.Humanoid.WalkSpeed = Value
+
+local speedToggle = Tabs.RCFA:AddToggle("WalkSpeedToggle", {
+    Title = "Enable Speed Hack",
+    Default = false
+})
+
+local function applySpeed()
+    if not Character or not Character:FindFirstChild("Humanoid") then return end
+    Character.Humanoid.WalkSpeed = wSlider.Value
+end
+
+speedToggle:OnChanged(function(state)
+    if not Character or not Character:FindFirstChild("Humanoid") then return end
+
+    if state then
+        -- ENABLE
+        speedEnabled = true
+        originalSpeed = Character.Humanoid.WalkSpeed
+
+        if speedConnection then speedConnection:Disconnect() end
+        speedConnection = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if speedEnabled then
+                Character.Humanoid.WalkSpeed = wSlider.Value
+            end
         end)
+
+        applySpeed()
+        Fluent:Notify({Title="Navsploit", Content="Speed Enabled", Duration=2})
+    else
+        -- DISABLE
+        speedEnabled = false
+        if speedConnection then speedConnection:Disconnect() end
+
+        -- Restore original speed
+        if originalSpeed then
+            Character.Humanoid.WalkSpeed = originalSpeed
+        end
+
+        Fluent:Notify({Title="Navsploit", Content="Speed Disabled", Duration=2})
+    end
+end)
+
+wSlider:OnChanged(function()
+    if speedEnabled then
+        applySpeed()
     end
 end)
 ---------------------------------------------------
