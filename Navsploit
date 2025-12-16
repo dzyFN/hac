@@ -580,114 +580,145 @@ RCFA.CharacterAdded:Connect(function(char)
     end
 end)
 
+---------------------------------------------------
+-- NUVSAv.2 SECTION
+---------------------------------------------------
+local NUVSA = Tabs.RCFA:AddSection("NUVSAv.2")
 
 
 ---------------------------------------------------
--- NUVSAv.2 AUTO-TUCK (FIXED & LOADING)
+-- NUVSAv.2 AUTO TUCK (FOOTBALL-COMPATIBLE)
 ---------------------------------------------------
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
-local FootballEvent = ReplicatedStorage:WaitForChild("FootballEvent")
 
-local autoTuckEnabled = false
-local autoTuckBind = Enum.KeyCode.P -- DEFAULT
+local nuvsaAutoTuckEnabled = false
+local nuvsaAutoTuckBind = Enum.KeyCode.P -- DEFAULT KEY
 local waitingForBind = false
 
 ---------------------------------------------------
--- GUI
+-- GUI TOGGLE
 ---------------------------------------------------
-local autoTuckToggle = Tabs.RCFA:AddToggle("NUVSAv2AutoTuck", {
+local nuvsaAutoTuckToggle = NUVSA:AddToggle("NUVSAAutoTuck", {
     Title = "NUVSAv.2 Auto Tuck",
     Default = false
 })
 
-Tabs.RCFA:AddButton({
+---------------------------------------------------
+-- GUI KEYBIND BUTTON
+---------------------------------------------------
+NUVSA:AddButton({
     Title = "Set AutoTuck Key",
-    Description = "Press any key or controller",
+    Description = "Press any key or controller button",
     Callback = function()
         waitingForBind = true
         Fluent:Notify({
-            Title = "Navsploit",
+            Title = "NUVSAv.2",
             Content = "Press a key or controller button...",
-            Duration = 3
+            Duration = 2
         })
     end
 })
 
 ---------------------------------------------------
--- HELPERS
+-- CORE LOGIC
 ---------------------------------------------------
-local function getConfig()
+local function applyAutoTuck()
     local char = Player.Character
     if not char then return end
+
     local hitbox = char:FindFirstChild("Hitbox")
     if not hitbox then return end
-    return hitbox:FindFirstChild("Configuration")
-end
 
-local function hasFootball()
-    return Player.Character and Player.Character:FindFirstChild("Football")
+    local config = hitbox:FindFirstChild("Configuration")
+    if not config then return end
+
+    local canTuck = config:FindFirstChild("CanTuck")
+    local mode = config:FindFirstChild("Mode")
+
+    if not canTuck or not mode then return end
+
+    -- only tuck when football logic allows
+    if nuvsaAutoTuckEnabled
+        and not canTuck.Value
+        and mode.Value ~= "Pass"
+        and mode.Value ~= "Snap" then
+
+        canTuck.Value = true
+    end
 end
 
 ---------------------------------------------------
--- TOGGLE
+-- TOGGLE HANDLER
 ---------------------------------------------------
-autoTuckToggle:OnChanged(function(v)
-    autoTuckEnabled = v
+nuvsaAutoTuckToggle:OnChanged(function(state)
+    nuvsaAutoTuckEnabled = state
+
+    if not state then
+        -- safely untuck
+        local char = Player.Character
+        if char and char:FindFirstChild("Hitbox") then
+            local ct = char.Hitbox.Configuration:FindFirstChild("CanTuck")
+            if ct then ct.Value = false end
+        end
+    end
+
     Fluent:Notify({
-        Title = "Navsploit",
-        Content = "Auto Tuck "..(v and "Enabled" or "Disabled"),
-        Duration = 1
+        Title = "NUVSAv.2",
+        Content = "Auto Tuck: "..(state and "Enabled" or "Disabled"),
+        Duration = 1.2
     })
 end)
 
 ---------------------------------------------------
--- INPUT
+-- INPUT LISTENER
 ---------------------------------------------------
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
 
-    -- bind key
+    -- bind mode
     if waitingForBind then
-        autoTuckBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        nuvsaAutoTuckBind =
+            input.KeyCode ~= Enum.KeyCode.Unknown
+            and input.KeyCode
+            or input.UserInputType
+
         waitingForBind = false
+
         Fluent:Notify({
-            Title = "Navsploit",
-            Content = "Bound to "..tostring(autoTuckBind),
-            Duration = 1.2
+            Title = "NUVSAv.2",
+            Content = "AutoTuck key set to: "..tostring(nuvsaAutoTuckBind),
+            Duration = 1.5
         })
         return
     end
 
-    if not autoTuckEnabled then return end
-    if not hasFootball() then return end
+    -- toggle key
+    if input.KeyCode == nuvsaAutoTuckBind
+        or input.UserInputType == nuvsaAutoTuckBind then
 
-    if input.KeyCode == autoTuckBind or input.UserInputType == autoTuckBind then
-        local config = getConfig()
-        if not config then return end
-
-        -- respect football rules
-        if config.Mode.Value == "Pass" or config.Mode.Value == "Snap" then
-            return
-        end
-
-        if not config.CanTuck.Value then
-            FootballEvent:FireServer({"Tuck"})
-        else
-            FootballEvent:FireServer({"UnTuck"})
-        end
+        nuvsaAutoTuckEnabled = not nuvsaAutoTuckEnabled
+        nuvsaAutoTuckToggle:SetValue(nuvsaAutoTuckEnabled)
     end
 end)
 
 ---------------------------------------------------
--- CHARACTER SAFE RESET
+-- FOOTBALL DETECTION
 ---------------------------------------------------
-Player.CharacterAdded:Connect(function()
-    task.wait(1)
+Player.CharacterAdded:Connect(function(char)
+    char.ChildAdded:Connect(function(child)
+        if child.Name == "Football" then
+            task.wait(0.15)
+            applyAutoTuck()
+        end
+    end)
 end)
+
+
+
+
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if waitingForBVBind then
