@@ -581,37 +581,37 @@ RCFA.CharacterAdded:Connect(function(char)
 end)
 
 
+
 ---------------------------------------------------
--- NUVSAv.2 AUTO-TUCK SYSTEM (FOOTBALL)
+-- NUVSAv.2 AUTO-TUCK (FIXED & LOADING)
 ---------------------------------------------------
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Player = Players.LocalPlayer
 local FootballEvent = ReplicatedStorage:WaitForChild("FootballEvent")
 
 local autoTuckEnabled = false
-local autoTuckBind = Enum.KeyCode.P -- DEFAULT KEY
+local autoTuckBind = Enum.KeyCode.P -- DEFAULT
 local waitingForBind = false
 
 ---------------------------------------------------
--- GUI TOGGLE
+-- GUI
 ---------------------------------------------------
 local autoTuckToggle = Tabs.RCFA:AddToggle("NUVSAv2AutoTuck", {
     Title = "NUVSAv.2 Auto Tuck",
     Default = false
 })
 
----------------------------------------------------
--- KEYBIND BUTTON
----------------------------------------------------
 Tabs.RCFA:AddButton({
     Title = "Set AutoTuck Key",
-    Description = "Press any key or controller button",
+    Description = "Press any key or controller",
     Callback = function()
         waitingForBind = true
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Press any key / controller button...",
+            Content = "Press a key or controller button...",
             Duration = 3
         })
     end
@@ -621,7 +621,7 @@ Tabs.RCFA:AddButton({
 -- HELPERS
 ---------------------------------------------------
 local function getConfig()
-    local char = RCFA.Character
+    local char = Player.Character
     if not char then return end
     local hitbox = char:FindFirstChild("Hitbox")
     if not hitbox then return end
@@ -629,41 +629,39 @@ local function getConfig()
 end
 
 local function hasFootball()
-    local char = RCFA.Character
-    return char and char:FindFirstChild("Football")
+    return Player.Character and Player.Character:FindFirstChild("Football")
 end
 
 ---------------------------------------------------
--- TOGGLE FROM GUI
+-- TOGGLE
 ---------------------------------------------------
-autoTuckToggle:OnChanged(function(state)
-    autoTuckEnabled = state
+autoTuckToggle:OnChanged(function(v)
+    autoTuckEnabled = v
     Fluent:Notify({
         Title = "Navsploit",
-        Content = "Auto Tuck "..(state and "Enabled" or "Disabled"),
-        Duration = 1.5
+        Content = "Auto Tuck "..(v and "Enabled" or "Disabled"),
+        Duration = 1
     })
 end)
 
 ---------------------------------------------------
--- INPUT HANDLER
+-- INPUT
 ---------------------------------------------------
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
 
-    -- SET KEYBIND
+    -- bind key
     if waitingForBind then
         autoTuckBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
         waitingForBind = false
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Auto Tuck key set to: "..tostring(autoTuckBind),
-            Duration = 1.5
+            Content = "Bound to "..tostring(autoTuckBind),
+            Duration = 1.2
         })
         return
     end
 
-    -- ACTUAL TUCK LOGIC
     if not autoTuckEnabled then return end
     if not hasFootball() then return end
 
@@ -671,7 +669,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         local config = getConfig()
         if not config then return end
 
-        -- Block illegal states
+        -- respect football rules
         if config.Mode.Value == "Pass" or config.Mode.Value == "Snap" then
             return
         end
@@ -685,13 +683,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ---------------------------------------------------
--- CHARACTER RESPAWN SAFETY
+-- CHARACTER SAFE RESET
 ---------------------------------------------------
-RCFA.CharacterAdded:Connect(function()
+Player.CharacterAdded:Connect(function()
     task.wait(1)
 end)
 
--- Detect key/controller press
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if waitingForBVBind then
         -- Set the bind directly from key or controller button
