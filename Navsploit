@@ -18,8 +18,9 @@ local allowedUsers = {
 ["Bmitt_5"] = true,
 ["Iegalbriefs"] = true,
  ["Binkfy"] = true,
+["4060762672"] = true,
+["Iimerenece"] = true,
 }
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Local = Players.LocalPlayer -- needed for AutoTuck
