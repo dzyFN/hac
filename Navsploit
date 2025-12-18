@@ -91,63 +91,127 @@ local Tabs = {
     RCFA = Window:AddTab({ Title = "RCFA" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
-local speedEnabled = false
-local speedConnection
-local originalSpeed
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
-    Title = "Walk Speed",
-    Default = 16, -- does NOT apply unless enabled
-    Min = 14,
+local Character
+local Humanoid
+
+---------------------------------------------------
+-- STATE
+---------------------------------------------------
+local speedEnabled = false
+local speedConnection = nil
+local originalSpeed = nil
+
+---------------------------------------------------
+-- CHARACTER HANDLER
+---------------------------------------------------
+local function onCharacterAdded(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+
+    -- Store whatever speed the GAME sets (momentum-friendly)
+    originalSpeed = Humanoid.WalkSpeed
+
+    -- If toggle is ON after respawn, apply it
+    if speedEnabled then
+        task.wait(0.1)
+        Humanoid.WalkSpeed = WalkSpeedSlider.Value
+    end
+end
+
+-- Init
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+---------------------------------------------------
+-- UI
+---------------------------------------------------
+local WalkSpeedSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
+    Title = "Walk Speed (Manual)",
+    Default = 20,
+    Min = 10,
     Max = 50,
-    Rounding = 1,
+    Rounding = 1
 })
 
-local speedToggle = Tabs.RCFA:AddToggle("WalkSpeedToggle", {
-    Title = "Enable Speed Hack",
+local SpeedToggle = Tabs.RCFA:AddToggle("SpeedToggle", {
+    Title = "Enable Speed (Overrides Momentum)",
     Default = false
 })
 
+---------------------------------------------------
+-- APPLY SPEED (ONLY WHEN ENABLED)
+---------------------------------------------------
 local function applySpeed()
-    if not Character or not Character:FindFirstChild("Humanoid") then return end
-    Character.Humanoid.WalkSpeed = wSlider.Value
+    if speedEnabled and Humanoid then
+        Humanoid.WalkSpeed = WalkSpeedSlider.Value
+    end
 end
 
-speedToggle:OnChanged(function(state)
-    if not Character or not Character:FindFirstChild("Humanoid") then return end
+---------------------------------------------------
+-- TOGGLE LOGIC
+---------------------------------------------------
+SpeedToggle:OnChanged(function(state)
+    if not Humanoid then return end
 
     if state then
         -- ENABLE
         speedEnabled = true
-        originalSpeed = Character.Humanoid.WalkSpeed
 
-        if speedConnection then speedConnection:Disconnect() end
-        speedConnection = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        -- Save current momentum-based speed
+        originalSpeed = Humanoid.WalkSpeed
+
+        -- Remove old connection
+        if speedConnection then
+            speedConnection:Disconnect()
+            speedConnection = nil
+        end
+
+        -- Lock speed ONLY while enabled
+        speedConnection = Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             if speedEnabled then
-                Character.Humanoid.WalkSpeed = wSlider.Value
+                Humanoid.WalkSpeed = WalkSpeedSlider.Value
             end
         end)
 
         applySpeed()
-        Fluent:Notify({Title="Navsploit", Content="Speed Enabled", Duration=2})
+
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Speed Override Enabled",
+            Duration = 2
+        })
     else
         -- DISABLE
         speedEnabled = false
-        if speedConnection then speedConnection:Disconnect() end
 
-        -- Restore original speed
-        if originalSpeed then
-            Character.Humanoid.WalkSpeed = originalSpeed
+        if speedConnection then
+            speedConnection:Disconnect()
+            speedConnection = nil
         end
 
-        Fluent:Notify({Title="Navsploit", Content="Speed Disabled", Duration=2})
+        -- Give control back to momentum system
+        if originalSpeed then
+            Humanoid.WalkSpeed = originalSpeed
+        end
+
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Speed Override Disabled (Momentum Restored)",
+            Duration = 2
+        })
     end
 end)
 
-wSlider:OnChanged(function()
-    if speedEnabled then
-        applySpeed()
-    end
+---------------------------------------------------
+-- SLIDER UPDATE (ONLY AFFECTS WHEN ENABLED)
+---------------------------------------------------
+WalkSpeedSlider:OnChanged(function()
+    applySpeed()
 end)
 ---------------------------------------------------
 -- JUMP POWER
