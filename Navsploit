@@ -96,7 +96,7 @@ local originalSpeed
 
 local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
     Title = "Walk Speed",
-    Default = 16, -- does NOT apply unless enabled
+    
     Min = 14,
     Max = 50,
     Rounding = 1,
