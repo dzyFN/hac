@@ -21,6 +21,7 @@ local allowedUsers = {
 ["4060762672"] = true,
 ["Iimerenece"] = true,
 ["wowp4th"] = true,
+["Princecoolboy1234"] = true,
 }
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
