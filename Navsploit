@@ -90,14 +90,26 @@ local Tabs = {
     RCFA = Window:AddTab({ Title = "RCFA" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
-local speedEnabled = false
-local speedConnection
-local originalSpeed
+---------------------------------------------------
+-- SPEED SYSTEM (MOMENTUM SAFE)
+---------------------------------------------------
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local speedEnabled = false
+local speedConnection = nil
+local originalSpeed = Humanoid.WalkSpeed
+
+---------------------------------------------------
+-- UI
+---------------------------------------------------
 local wSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
     Title = "Walk Speed",
-   
-    Min = 14,
+    Default = 16,
+    Min = 10,
     Max = 50,
     Rounding = 1,
 })
@@ -107,45 +119,83 @@ local speedToggle = Tabs.RCFA:AddToggle("WalkSpeedToggle", {
     Default = false
 })
 
+---------------------------------------------------
+-- FUNCTIONS
+---------------------------------------------------
 local function applySpeed()
-    if not Character or not Character:FindFirstChild("Humanoid") then return end
-    Character.Humanoid.WalkSpeed = wSlider.Value
+    if speedEnabled and Humanoid then
+        Humanoid.WalkSpeed = wSlider.Value
+    end
 end
 
+---------------------------------------------------
+-- TOGGLE LOGIC
+---------------------------------------------------
 speedToggle:OnChanged(function(state)
-    if not Character or not Character:FindFirstChild("Humanoid") then return end
+    if not Humanoid then return end
 
     if state then
         -- ENABLE
         speedEnabled = true
-        originalSpeed = Character.Humanoid.WalkSpeed
+        originalSpeed = Humanoid.WalkSpeed
 
-        if speedConnection then speedConnection:Disconnect() end
-        speedConnection = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        if speedConnection then
+            speedConnection:Disconnect()
+        end
+
+        -- Only lock speed while ENABLED
+        speedConnection = Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             if speedEnabled then
-                Character.Humanoid.WalkSpeed = wSlider.Value
+                Humanoid.WalkSpeed = wSlider.Value
             end
         end)
 
         applySpeed()
-        Fluent:Notify({Title="Navsploit", Content="Speed Enabled", Duration=2})
+
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Speed Enabled",
+            Duration = 2
+        })
     else
         -- DISABLE
         speedEnabled = false
-        if speedConnection then speedConnection:Disconnect() end
 
-        -- Restore original speed
-        if originalSpeed then
-            Character.Humanoid.WalkSpeed = originalSpeed
+        if speedConnection then
+            speedConnection:Disconnect()
+            speedConnection = nil
         end
 
-        Fluent:Notify({Title="Navsploit", Content="Speed Disabled", Duration=2})
+        -- Restore momentum-controlled speed
+        Humanoid.WalkSpeed = originalSpeed
+
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Speed Disabled",
+            Duration = 2
+        })
     end
 end)
 
+---------------------------------------------------
+-- SLIDER UPDATE
+---------------------------------------------------
 wSlider:OnChanged(function()
+    applySpeed()
+end)
+
+---------------------------------------------------
+-- RESPAWN SAFE
+---------------------------------------------------
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+
+    originalSpeed = Humanoid.WalkSpeed
+
     if speedEnabled then
-        applySpeed()
+        task.wait(0.1)
+        Humanoid.WalkSpeed = wSlider.Value
     end
 end)
 ---------------------------------------------------
