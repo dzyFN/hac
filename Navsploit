@@ -788,34 +788,84 @@ end)
 
 
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+local bvEnabled = true
+local bvBind = Enum.KeyCode.LeftBracket
+local waitingForBVBind = false
+local bvConnection
+
+local bvToggle = Tabs.RCFA:AddToggle("OLDLToggle", {
+    Title = "OL/DL (BV Destroy)",
+    Default = true
+})
+
+Tabs.RCFA:AddButton({
+    Title = "Set OL/DL Key",
+    Description = "Press any key or controller button",
+    Callback = function()
+        waitingForBVBind = true
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Press a key or controller button to bind OL/DL...",
+            Duration = 2
+        })
+    end
+})
+
+local function applyBV(char)
+    if not char then return end
+    for _, v in ipairs(char:GetDescendants()) do
+        if v:IsA("BodyVelocity") then
+            v:Destroy()
+        end
+    end
+end
+
+local function setupBV()
+    if bvConnection then
+        bvConnection:Disconnect()
+        bvConnection = nil
+    end
+
+    if bvEnabled and RCFA.Character then
+        applyBV(RCFA.Character)
+
+        bvConnection = RCFA.Character.DescendantAdded:Connect(function(obj)
+            if bvEnabled and obj:IsA("BodyVelocity") then
+                obj:Destroy()
+            end
+        end)
+    end
+end
+
+bvToggle:OnChanged(function(state)
+    bvEnabled = state
+    setupBV()
+end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
     if waitingForBVBind then
-        -- Set the bind directly from key or controller button
         bvBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
         waitingForBVBind = false
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "OL/DL Key set to: "..tostring(bvBind),
-            Duration = 3
+            Content = "OL/DL key set to: "..tostring(bvBind),
+            Duration = 1.5
         })
         return
     end
 
-    if gameProcessed then return end
+    if gp then return end
+
     if input.KeyCode == bvBind or input.UserInputType == bvBind then
         bvEnabled = not bvEnabled
         bvToggle:SetValue(bvEnabled)
-        Fluent:Notify({
-            Title = "Navsploit",
-            Content = "OL/DL "..(bvEnabled and "ON" or "OFF"),
-            Duration = 3
-        })
+        setupBV()
     end
 end)
 
--- Reapply OL/DL loop on character respawn
-RCFA.CharacterAdded:Connect(function(char)
-    task.wait(1) -- wait for character to load
+RCFA.CharacterAdded:Connect(function()
+    task.wait(1)
+    setupBV()
 end)
 
 ---------------------------------------------------
