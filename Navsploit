@@ -102,48 +102,37 @@ local Character
 local Humanoid
 
 ---------------------------------------------------
+-- SERVICES / PLAYER
+---------------------------------------------------
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+---------------------------------------------------
 -- STATE
 ---------------------------------------------------
+local Character
+local Humanoid
+
 local speedEnabled = false
 local speedConnection = nil
 local originalSpeed = nil
 
 ---------------------------------------------------
--- CHARACTER HANDLER
----------------------------------------------------
-local function onCharacterAdded(char)
-    Character = char
-    Humanoid = char:WaitForChild("Humanoid")
-
-    -- Store whatever speed the GAME sets (momentum-friendly)
-    originalSpeed = Humanoid.WalkSpeed
-
-    -- If toggle is ON after respawn, apply it
-    if speedEnabled then
-        task.wait(0.1)
-        Humanoid.WalkSpeed = WalkSpeedSlider.Value
-    end
-end
-
--- Init
-if LocalPlayer.Character then
-    onCharacterAdded(LocalPlayer.Character)
-end
-LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-
----------------------------------------------------
 -- UI
 ---------------------------------------------------
 local WalkSpeedSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
-    Title = "Walk Speed (Manual)",
-    Default = 20,
+    Title = "Walk Speed",
+    Default = 16,
     Min = 10,
     Max = 50,
     Rounding = 1
 })
 
+-- HIDE SLIDER ON JOIN
+WalkSpeedSlider:SetVisible(false)
+
 local SpeedToggle = Tabs.RCFA:AddToggle("SpeedToggle", {
-    Title = "Enable Speed (Overrides Momentum)",
+    Title = "Enable Speed Hack",
     Default = false
 })
 
@@ -157,6 +146,29 @@ local function applySpeed()
 end
 
 ---------------------------------------------------
+-- CHARACTER HANDLER
+---------------------------------------------------
+local function onCharacterAdded(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+
+    -- Store real game speed
+    originalSpeed = Humanoid.WalkSpeed
+
+    -- ONLY apply if toggle is ON
+    if speedEnabled then
+        task.wait(0.1)
+        applySpeed()
+    end
+end
+
+-- Init
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+---------------------------------------------------
 -- TOGGLE LOGIC
 ---------------------------------------------------
 SpeedToggle:OnChanged(function(state)
@@ -165,17 +177,14 @@ SpeedToggle:OnChanged(function(state)
     if state then
         -- ENABLE
         speedEnabled = true
-
-        -- Save current momentum-based speed
         originalSpeed = Humanoid.WalkSpeed
 
-        -- Remove old connection
+        WalkSpeedSlider:SetVisible(true)
+
         if speedConnection then
             speedConnection:Disconnect()
-            speedConnection = nil
         end
 
-        -- Lock speed ONLY while enabled
         speedConnection = Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             if speedEnabled then
                 Humanoid.WalkSpeed = WalkSpeedSlider.Value
@@ -186,37 +195,40 @@ SpeedToggle:OnChanged(function(state)
 
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Speed Override Enabled",
+            Content = "Speed Hack Enabled",
             Duration = 2
         })
+
     else
         -- DISABLE
         speedEnabled = false
+
+        WalkSpeedSlider:SetVisible(false)
 
         if speedConnection then
             speedConnection:Disconnect()
             speedConnection = nil
         end
 
-        -- Give control back to momentum system
         if originalSpeed then
             Humanoid.WalkSpeed = originalSpeed
         end
 
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Speed Override Disabled (Momentum Restored)",
+            Content = "Speed Hack Disabled",
             Duration = 2
         })
     end
 end)
 
 ---------------------------------------------------
--- SLIDER UPDATE (ONLY AFFECTS WHEN ENABLED)
+-- SLIDER UPDATE
 ---------------------------------------------------
 WalkSpeedSlider:OnChanged(function()
     applySpeed()
 end)
+
 ---------------------------------------------------
 -- JUMP POWER
 ---------------------------------------------------
