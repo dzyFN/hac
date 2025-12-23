@@ -788,116 +788,37 @@ Player.CharacterAdded:Connect(function(char)
 end)
 
 
-
----------------------------------------------------
--- OL/DL (BODYVELOCITY DESTROY) WITH KEYBIND
----------------------------------------------------
-
-local UserInputService = game:GetService("UserInputService")
-
--- STATES
-local bvEnabled = false
-local bvBind = Enum.KeyCode.LeftBracket -- default
-local waitingForBVBind = false
-local bvConnection = nil
-
----------------------------------------------------
--- GUI
----------------------------------------------------
-
-local bvToggle = Tabs.RCFA:AddToggle("OLDLToggle", {
-    Title = "OL/DL (BV Destroy)",
-    Default = false
-})
-
-Tabs.RCFA:AddButton({
-    Title = "Set OL/DL Key",
-    Description = "Press any key or controller button",
-    Callback = function()
-        waitingForBVBind = true
-        Fluent:Notify({
-            Title = "Navsploit",
-            Content = "Press a key or controller button to bind OL/DL...",
-            Duration = 3
-        })
-    end
-})
-
----------------------------------------------------
--- CORE LOGIC
----------------------------------------------------
-
-local function setupBV()
-    if bvConnection then
-        bvConnection:Disconnect()
-        bvConnection = nil
-    end
-
-    if bvEnabled and RCFA.Character then
-        -- destroy existing BodyVelocity
-        for _, v in ipairs(RCFA.Character:GetDescendants()) do
-            if v:IsA("BodyVelocity") then
-                v:Destroy()
-            end
-        end
-
-        -- destroy future BodyVelocity
-        bvConnection = RCFA.Character.DescendantAdded:Connect(function(obj)
-            if bvEnabled and obj:IsA("BodyVelocity") then
-                obj:Destroy()
-            end
-        end)
-    end
-end
-
----------------------------------------------------
--- TOGGLE FROM GUI
----------------------------------------------------
-
-bvToggle:OnChanged(function(state)
-    bvEnabled = state
-    setupBV()
-end)
-
----------------------------------------------------
--- INPUT (BIND + TOGGLE)
----------------------------------------------------
-
+-- Detect key/controller press
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-
-    -- BIND MODE (IGNORE gameProcessed)
     if waitingForBVBind then
-        bvBind =
-            input.KeyCode ~= Enum.KeyCode.Unknown
-            and input.KeyCode
-            or input.UserInputType
-
+        -- Set the bind directly from key or controller button
+        bvBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
         waitingForBVBind = false
-
         Fluent:Notify({
             Title = "Navsploit",
             Content = "OL/DL Key set to: "..tostring(bvBind),
-            Duration = 2
+            Duration = 3
         })
         return
     end
 
-    -- NORMAL TOGGLE
     if gameProcessed then return end
-
     if input.KeyCode == bvBind or input.UserInputType == bvBind then
         bvEnabled = not bvEnabled
         bvToggle:SetValue(bvEnabled)
-
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "OL/DL "..(bvEnabled and "Enabled" or "Disabled"),
-            Duration = 2
+            Content = "OL/DL "..(bvEnabled and "ON" or "OFF"),
+            Duration = 3
         })
-
-        setupBV()
     end
 end)
+
+-- Reapply OL/DL loop on character respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1) -- wait for character to load
+end)
+
 
 ---------------------------------------------------
 -- RESPAWN SUPPORT
