@@ -6,6 +6,8 @@ local allowedUsers = {
     ["kooooooooooooooooobe"] = true,
     ["gaymute"] = true,
     ["newtrackrunners"] = true,
+["Bankrollpainful"] = true,
+
   ["Pacablly"] = true,
   ["ddriIIy"] = true,
     ["keehqq"] = true,
