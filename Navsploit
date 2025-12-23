@@ -3,7 +3,7 @@ local allowedUsers = {
     ["RushRunnel"] = true,
     ["wbtr"] = true,
     ["Currtency"] = true,
-    ["FearingLawrence"] = true,
+  
     ["kooooooooooooooooobe"] = true,
     ["gaymute"] = true,
     ["newtrackrunners"] = true,
