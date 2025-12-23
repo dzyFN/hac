@@ -113,26 +113,51 @@ local LocalPlayer = Players.LocalPlayer
 local Character
 local Humanoid
 
+
+
+---------------------------------------------------
+-- STATE
+---------------------------------------------------
 local speedEnabled = false
 local speedConnection = nil
 local originalSpeed = nil
 
 ---------------------------------------------------
+-- CHARACTER HANDLER
+---------------------------------------------------
+local function onCharacterAdded(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+
+    -- Store whatever speed the GAME sets (momentum-friendly)
+    originalSpeed = Humanoid.WalkSpeed
+
+    -- If toggle is ON after respawn, apply it
+    if speedEnabled then
+        task.wait(0.1)
+        Humanoid.WalkSpeed = WalkSpeedSlider.Value
+    end
+end
+
+-- Init
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+---------------------------------------------------
 -- UI
 ---------------------------------------------------
 local WalkSpeedSlider = Tabs.RCFA:AddSlider("WalkSpeedSlider", {
-    Title = "Walk Speed",
-    Default = 16,
+    Title = "Walk Speed (Manual)",
+    Default = 13,
     Min = 10,
     Max = 50,
     Rounding = 1
 })
 
--- HIDE SLIDER ON JOIN
-WalkSpeedSlider:SetVisible(false)
-
 local SpeedToggle = Tabs.RCFA:AddToggle("SpeedToggle", {
-    Title = "Enable Speed Hack",
+    Title = "Enable Speed (Overrides Momentum)",
     Default = false
 })
 
@@ -146,29 +171,6 @@ local function applySpeed()
 end
 
 ---------------------------------------------------
--- CHARACTER HANDLER
----------------------------------------------------
-local function onCharacterAdded(char)
-    Character = char
-    Humanoid = char:WaitForChild("Humanoid")
-
-    -- Store real game speed
-    originalSpeed = Humanoid.WalkSpeed
-
-    -- ONLY apply if toggle is ON
-    if speedEnabled then
-        task.wait(0.1)
-        applySpeed()
-    end
-end
-
--- Init
-if LocalPlayer.Character then
-    onCharacterAdded(LocalPlayer.Character)
-end
-LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-
----------------------------------------------------
 -- TOGGLE LOGIC
 ---------------------------------------------------
 SpeedToggle:OnChanged(function(state)
@@ -177,14 +179,17 @@ SpeedToggle:OnChanged(function(state)
     if state then
         -- ENABLE
         speedEnabled = true
+
+        -- Save current momentum-based speed
         originalSpeed = Humanoid.WalkSpeed
 
-        WalkSpeedSlider:SetVisible(true)
-
+        -- Remove old connection
         if speedConnection then
             speedConnection:Disconnect()
+            speedConnection = nil
         end
 
+        -- Lock speed ONLY while enabled
         speedConnection = Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             if speedEnabled then
                 Humanoid.WalkSpeed = WalkSpeedSlider.Value
@@ -195,40 +200,37 @@ SpeedToggle:OnChanged(function(state)
 
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Speed Hack Enabled",
+            Content = "Speed Override Enabled",
             Duration = 2
         })
-
     else
         -- DISABLE
         speedEnabled = false
-
-        WalkSpeedSlider:SetVisible(false)
 
         if speedConnection then
             speedConnection:Disconnect()
             speedConnection = nil
         end
 
+        -- Give control back to momentum system
         if originalSpeed then
             Humanoid.WalkSpeed = originalSpeed
         end
 
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Speed Hack Disabled",
+            Content = "Speed Override Disabled (Momentum Restored)",
             Duration = 2
         })
     end
 end)
 
 ---------------------------------------------------
--- SLIDER UPDATE
+-- SLIDER UPDATE (ONLY AFFECTS WHEN ENABLED)
 ---------------------------------------------------
 WalkSpeedSlider:OnChanged(function()
     applySpeed()
 end)
-
 ---------------------------------------------------
 -- JUMP POWER
 ---------------------------------------------------
