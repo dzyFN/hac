@@ -418,7 +418,7 @@ end)
 -- RB HACKS SECTION (BY: Tru)
 ---------------------------------------------------
 local RBHSection = Tabs.RCFA:AddSection("RB HACKS")
-local RBHSliderValue = 2
+local RBHSliderValue = 0
 local RBHEnabled = false
 local tackleEnabled = true
 local tackleBind = Enum.KeyCode.K
@@ -427,9 +427,9 @@ local waitingForTackleBind = false
 -- HITBOX SHRINKER
 local RBHSlider = RBHSection:AddSlider("RBHHitboxSlider", {
     Title = "Shrink Hitbox Size",
-    Default = 2,
+    Default = 0,
     Min = 1,
-    Max = 10,
+    Max = 15,
     Rounding = 1
 })
 RBHSlider:OnChanged(function(value)
