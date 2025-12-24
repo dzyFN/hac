@@ -357,16 +357,15 @@ RCFA.CharacterAdded:Connect(function(char)
     end
 end)
 
----------------------------------------------------
--- HITBOX SYSTEM
----------------------------------------------------
 local hitboxSize = Vector3.new(2,4,2)
 local hitboxTransparencyValue = 1
+local hitboxCanCollide = false
 local hitboxVisible = false
 
 local function updateHitbox()
     local char = RCFA.Character
     if not char then return end
+
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
@@ -376,11 +375,17 @@ local function updateHitbox()
         hitbox.Name = "Hitbox"
         hitbox.Size = hitboxSize
         hitbox.Transparency = hitboxTransparencyValue
+
+        -- 🔴 SEAT TELEPORT FIX
         hitbox.CanCollide = false
+        hitbox.CanTouch = false
+        hitbox.CanQuery = false
+
         hitbox.Material = Enum.Material.ForceField
         hitbox.Massless = true
         hitbox.Anchored = false
         hitbox.Parent = char
+
         local weld = Instance.new("WeldConstraint")
         weld.Part0 = hitbox
         weld.Part1 = root
@@ -391,15 +396,13 @@ local function updateHitbox()
     hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
 end
 
-local hitboxSlider = Tabs.RCFA:AddSlider("HitboxSizeSlider", {
-    Title = "Hitbox Size",
-    Default = 2,
-    Min = 2,
-    Max = 25,
-    Rounding = 1,
-})
-hitboxSlider:OnChanged(function(v)
-    hitboxSize = Vector3.new(v, v+2, v)
+-- Apply default hitbox on spawn
+if RCFA.Character then
+    updateHitbox()
+end
+
+RCFA.CharacterAdded:Connect(function()
+    task.wait(1)
     updateHitbox()
 end)
 
@@ -415,145 +418,92 @@ Tabs.RCFA:AddToggle("VisibleHB", {
 end)
 
 ---------------------------------------------------
--- RB HACKS SECTION (BY: Tru)
+-- TACKLE TOGGLE (DISABLE HITBOX SCRIPT)
 ---------------------------------------------------
-local RBHSection = Tabs.RCFA:AddSection("RB HACKS")
-local RBHSliderValue = 0
-local RBHEnabled = false
-local tackleEnabled = true
-local tackleBind = Enum.KeyCode.K
-local waitingForTackleBind = false
-
--- HITBOX SHRINKER
-local RBHSlider = RBHSection:AddSlider("RBHHitboxSlider", {
-    Title = "Shrink Hitbox Size",
-    Default = 0,
-    Min = 1,
-    Max = 15,
-    Rounding = 1
-})
-RBHSlider:OnChanged(function(value)
-    RBHSliderValue = value
-    local char = RCFA.Character
-    if char and char:FindFirstChild("Hitbox") then
-        char.Hitbox.Size = Vector3.new(
-            math.max(1, 2 - RBHSliderValue),
-            math.max(1, 4 - RBHSliderValue),
-            math.max(1, 2 - RBHSliderValue)
-        )
-    end
-end)
-
--- TOGGLE TACKLE HITBOX
-RBHSection:AddToggle("TackleHitboxToggle", {
-    Title = "Enable/Disable Tackle Hitbox",
-    Default = true
+Tabs.RCFA:AddToggle("DisableTackleHB", {
+    Title = "Disable Tackle Hitbox",
+    Default = false
 }):OnChanged(function(state)
-    tackleEnabled = state
     local char = RCFA.Character
-    if char then
-        local tackleScript = char:FindFirstChild("Hitbox") and char.Hitbox:FindFirstChild("Script")
-        if tackleScript and tackleScript:IsA("LocalScript") then
-            tackleScript.Disabled = not tackleEnabled
+    if not char then return end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local hitbox = root:FindFirstChild("Hitbox")
+    if hitbox then
+        local script = hitbox:FindFirstChildWhichIsA("Script")
+        if script then
+            script.Disabled = state
         end
     end
 end)
 
--- BUTTON TO SET KEYBIND
-RBHSection:AddButton({
-    Title = "Set Tackle Hitbox Key",
-    Description = "Press any key or controller button",
-    Callback = function()
-        waitingForTackleBind = true
-        Fluent:Notify({
-            Title = "RB HACKS",
-            Content = "Press a key or controller button to bind Tackle Hitbox...",
-            Duration = 3
-        })
-    end
-})
+---------------------------------------------------
+-- MAGNET SYSTEM
+---------------------------------------------------
+local magnetValue = nil
 
--- INPUT LISTENER
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if waitingForTackleBind then
-        tackleBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
-        waitingForTackleBind = false
-        Fluent:Notify({
-            Title = "RB HACKS",
-            Content = "Tackle Hitbox Key set to: "..tostring(tackleBind),
-            Duration = 2
-        })
-        return
-    end
-    if gameProcessed then return end
-    if input.KeyCode == tackleBind or input.UserInputType == tackleBind then
-        tackleEnabled = not tackleEnabled
-        local char = RCFA.Character
-        if char then
-            local tackleScript = char.Hitbox:FindFirstChild("Script")
-            if tackleScript and tackleScript:IsA("LocalScript") then
-                tackleScript.Disabled = not tackleEnabled
+Tabs.RCFA:AddInput("MagnetBox", {
+    Title = "Magnet Range",
+    Default = "",
+    Placeholder = "Enter range..."
+}):OnChanged(function(text)
+    local num = tonumber(text)
+    magnetValue = num
+end)
+
+task.spawn(function()
+    while task.wait() and RCFA.Character do
+        if magnetValue then
+            local char = RCFA.Character
+            if char and char:FindFirstChild("Hitbox") then
+                char.Hitbox.Size = Vector3.new(
+                    magnetValue + 3,
+                    magnetValue + 5,
+                    magnetValue + 3
+                )
             end
         end
-        Fluent:Notify({
-            Title = "RB HACKS",
-            Content = "Tackle Hitbox "..(tackleEnabled and "Enabled" or "Disabled"),
-            Duration = 2
-        })
     end
 end)
 
--- REAPPLY AFTER RESPAWN
-RCFA.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    local hitbox = char:FindFirstChild("Hitbox")
-    if hitbox then
-        hitbox.Size = Vector3.new(
-            math.max(1, 2 - RBHSliderValue),
-            math.max(1, 4 - RBHSliderValue),
-            math.max(1, 2 - RBHSliderValue)
-        )
-        local tackleScript = hitbox:FindFirstChild("Script")
-        if tackleScript and tackleScript:IsA("LocalScript") then
-            tackleScript.Disabled = not tackleEnabled
-        end
-    end
-end)
 ---------------------------------------------------
 -- AUTO-TUCK SYSTEM WITH KEYBIND (RCFA TAB)
 ---------------------------------------------------
 local autoTuckEnabled = false
-local autoTuckBind = Enum.KeyCode.RightBracket -- default key
+local autoTuckBind = Enum.KeyCode.RightBracket
 local autoTuckConnection
 local waitingForBind = false
 
--- GUI Toggle
 local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
     Title = "Auto Tuck (ON/OFF)",
     Default = false
 })
 
--- GUI Button to set keybind
 Tabs.RCFA:AddButton({
     Title = "Set AutoTuck Key",
     Description = "Press any key or controller button",
     Callback = function()
         waitingForBind = true
-        Fluent:Notify({Title="Navsploit", Content="Press a key or controller button to bind Auto Tuck...", Duration=3})
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Press a key or controller button...",
+            Duration = 3
+        })
     end
 })
 
--- Setup AutoTuck connection
 local function setupAutoTuck()
-    -- Disconnect previous connection if exists
     if autoTuckConnection then
         autoTuckConnection:Disconnect()
         autoTuckConnection = nil
     end
+
     if autoTuckEnabled and RCFA.Character then
         autoTuckConnection = RCFA.Character.ChildAdded:Connect(function(child)
             if child.Name == "Football" then
-                task.wait(0)
+                task.wait()
                 local handle = child:FindFirstChild("Handle")
                 if handle and handle:FindFirstChild("RemoteEvent") then
                     handle.RemoteEvent:FireServer({"Tuck"})
@@ -563,42 +513,34 @@ local function setupAutoTuck()
     end
 end
 
--- Toggle from GUI
 autoTuckToggle:OnChanged(function(state)
     autoTuckEnabled = state
     setupAutoTuck()
 end)
 
--- Detect key/controller press
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+UserInputService.InputBegan:Connect(function(input, gp)
     if waitingForBind then
-        -- Set the bind directly from key or controller button
         autoTuckBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
         waitingForBind = false
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Auto Tuck Key set to: "..tostring(autoTuckBind),
+            Content = "Auto Tuck bound to "..tostring(autoTuckBind),
             Duration = 1
         })
         return
     end
 
-    if gameProcessed then return end
+    if gp then return end
+
     if input.KeyCode == autoTuckBind or input.UserInputType == autoTuckBind then
         autoTuckEnabled = not autoTuckEnabled
         autoTuckToggle:SetValue(autoTuckEnabled)
-        Fluent:Notify({
-            Title = "Navsploit",
-            Content = "Auto Tuck: "..(autoTuckEnabled and "Enabled" or "Disabled"),
-            Duration = 1
-        })
         setupAutoTuck()
     end
 end)
 
--- Reapply AutoTuck on character respawn
-RCFA.CharacterAdded:Connect(function(char)
-    task.wait(1) -- wait for humanoid and children
+RCFA.CharacterAdded:Connect(function()
+    task.wait(1)
     setupAutoTuck()
 end)
 
