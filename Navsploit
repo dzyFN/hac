@@ -422,6 +422,118 @@ Tabs.RCFA:AddToggle("VisibleHB", {
         char.Hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
     end
 end)
+---------------------------------------------------
+-- RB HACKS SECTION
+---------------------------------------------------
+local RBHSection = Tabs.RCFA:AddSection("RB HACKS")
+
+-- HITBOX SHRINKER
+local RBHSliderValue = 2
+local RBHEnabled = false -- toggle for tackle hitbox separately
+local RBHSlider = RBHSection:AddSlider("RBHHitboxSlider", {
+    Title = "Shrink Hitbox Size",
+    Default = 2,
+    Min = 1,
+    Max = 10,
+    Rounding = 1
+})
+
+RBHSlider:OnChanged(function(value)
+    RBHSliderValue = value
+    local char = RCFA.Character
+    if char and char:FindFirstChild("Hitbox") then
+        -- Shrink hitbox instead of increasing
+        char.Hitbox.Size = Vector3.new(
+            math.max(1, 2 - RBHSliderValue), 
+            math.max(1, 4 - RBHSliderValue), 
+            math.max(1, 2 - RBHSliderValue)
+        )
+    end
+end)
+
+-- TOGGLE TACKLE HITBOX
+local tackleEnabled = true
+local tackleBind = Enum.KeyCode.K
+local waitingForTackleBind = false
+
+RBHSection:AddToggle("TackleHitboxToggle", {
+    Title = "Enable/Disable Tackle Hitbox",
+    Default = true
+}):OnChanged(function(state)
+    tackleEnabled = state
+    local char = RCFA.Character
+    if char then
+        local tackleScript = char:FindFirstChild("Hitbox") and char.Hitbox:FindFirstChild("Script")
+        if tackleScript and tackleScript:IsA("LocalScript") then
+            tackleScript.Disabled = not tackleEnabled
+        end
+    end
+end)
+
+-- BUTTON TO SET KEYBIND
+RBHSection:AddButton({
+    Title = "Set Tackle Hitbox Key",
+    Description = "Press any key or controller button",
+    Callback = function()
+        waitingForTackleBind = true
+        Fluent:Notify({
+            Title = "RB HACKS",
+            Content = "Press a key or controller button to bind Tackle Hitbox...",
+            Duration = 3
+        })
+    end
+})
+
+-- INPUT LISTENER
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if waitingForTackleBind then
+        tackleBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        waitingForTackleBind = false
+        Fluent:Notify({
+            Title = "RB HACKS",
+            Content = "Tackle Hitbox Key set to: "..tostring(tackleBind),
+            Duration = 2
+        })
+        return
+    end
+
+    if gameProcessed then return end
+    if input.KeyCode == tackleBind or input.UserInputType == tackleBind then
+        tackleEnabled = not tackleEnabled
+        local char = RCFA.Character
+        if char then
+            local tackleScript = char.Hitbox:FindFirstChild("Script")
+            if tackleScript and tackleScript:IsA("LocalScript") then
+                tackleScript.Disabled = not tackleEnabled
+            end
+        end
+        Fluent:Notify({
+            Title = "RB HACKS",
+            Content = "Tackle Hitbox "..(tackleEnabled and "Enabled" or "Disabled"),
+            Duration = 2
+        })
+    end
+end)
+
+-- Reapply after respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    local hitbox = char:FindFirstChild("Hitbox")
+    if hitbox then
+        -- apply shrink value
+        hitbox.Size = Vector3.new(
+            math.max(1, 2 - RBHSliderValue),
+            math.max(1, 4 - RBHSliderValue),
+            math.max(1, 2 - RBHSliderValue)
+        )
+
+        -- apply tackle script state
+        local tackleScript = hitbox:FindFirstChild("Script")
+        if tackleScript and tackleScript:IsA("LocalScript") then
+            tackleScript.Disabled = not tackleEnabled
+        end
+    end
+end)
 
 ---------------------------------------------------
 -- MAGNET SYSTEM
@@ -846,118 +958,6 @@ RCFA.CharacterAdded:Connect(function()
     setupBV()
 end)
 
----------------------------------------------------
--- RB HACKS SECTION
----------------------------------------------------
-local RBHSection = Tabs.RCFA:AddSection("RB HACKS")
-
--- HITBOX SHRINKER
-local RBHSliderValue = 2
-local RBHEnabled = false -- toggle for tackle hitbox separately
-local RBHSlider = RBHSection:AddSlider("RBHHitboxSlider", {
-    Title = "Shrink Hitbox Size",
-    Default = 2,
-    Min = 1,
-    Max = 10,
-    Rounding = 1
-})
-
-RBHSlider:OnChanged(function(value)
-    RBHSliderValue = value
-    local char = RCFA.Character
-    if char and char:FindFirstChild("Hitbox") then
-        -- Shrink hitbox instead of increasing
-        char.Hitbox.Size = Vector3.new(
-            math.max(1, 2 - RBHSliderValue), 
-            math.max(1, 4 - RBHSliderValue), 
-            math.max(1, 2 - RBHSliderValue)
-        )
-    end
-end)
-
--- TOGGLE TACKLE HITBOX
-local tackleEnabled = true
-local tackleBind = Enum.KeyCode.K
-local waitingForTackleBind = false
-
-RBHSection:AddToggle("TackleHitboxToggle", {
-    Title = "Enable/Disable Tackle Hitbox",
-    Default = true
-}):OnChanged(function(state)
-    tackleEnabled = state
-    local char = RCFA.Character
-    if char then
-        local tackleScript = char:FindFirstChild("Hitbox") and char.Hitbox:FindFirstChild("Script")
-        if tackleScript and tackleScript:IsA("LocalScript") then
-            tackleScript.Disabled = not tackleEnabled
-        end
-    end
-end)
-
--- BUTTON TO SET KEYBIND
-RBHSection:AddButton({
-    Title = "Set Tackle Hitbox Key",
-    Description = "Press any key or controller button",
-    Callback = function()
-        waitingForTackleBind = true
-        Fluent:Notify({
-            Title = "RB HACKS",
-            Content = "Press a key or controller button to bind Tackle Hitbox...",
-            Duration = 3
-        })
-    end
-})
-
--- INPUT LISTENER
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if waitingForTackleBind then
-        tackleBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
-        waitingForTackleBind = false
-        Fluent:Notify({
-            Title = "RB HACKS",
-            Content = "Tackle Hitbox Key set to: "..tostring(tackleBind),
-            Duration = 2
-        })
-        return
-    end
-
-    if gameProcessed then return end
-    if input.KeyCode == tackleBind or input.UserInputType == tackleBind then
-        tackleEnabled = not tackleEnabled
-        local char = RCFA.Character
-        if char then
-            local tackleScript = char.Hitbox:FindFirstChild("Script")
-            if tackleScript and tackleScript:IsA("LocalScript") then
-                tackleScript.Disabled = not tackleEnabled
-            end
-        end
-        Fluent:Notify({
-            Title = "RB HACKS",
-            Content = "Tackle Hitbox "..(tackleEnabled and "Enabled" or "Disabled"),
-            Duration = 2
-        })
-    end
-end)
-
--- Reapply after respawn
-RCFA.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    local hitbox = char:FindFirstChild("Hitbox")
-    if hitbox then
-        -- apply shrink value
-        hitbox.Size = Vector3.new(
-            math.max(1, 2 - RBHSliderValue),
-            math.max(1, 4 - RBHSliderValue),
-            math.max(1, 2 - RBHSliderValue)
-        )
-
-        -- apply tackle script state
-        local tackleScript = hitbox:FindFirstChild("Script")
-        if tackleScript and tackleScript:IsA("LocalScript") then
-            tackleScript.Disabled = not tackleEnabled
-        end
-    end
-end)
 
 ---------------------------------------------------
 -- SETTINGS TAB FIXED & THEME SWITCH
