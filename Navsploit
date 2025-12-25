@@ -413,25 +413,89 @@ end)
 
 
 ---------------------------------------------------
--- TACKLE TOGGLE (DISABLE HITBOX SCRIPT)
+local untacklableEnabled = false
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Events = ReplicatedStorage:WaitForChild("Events")
+local TackleRemote = Events:WaitForChild("Tackle")
+
 ---------------------------------------------------
-Tabs.RCFA:AddToggle("DisableTackleHB", {
-    Title = "Disable Tackle Hitbox",
-    Default = false
-}):OnChanged(function(state)
+-- BLOCK TACKLE REMOTE (CLIENT-SIDE)
+---------------------------------------------------
+local oldFire
+oldFire = hookfunction(TackleRemote.FireServer, function(self, ...)
+    if untacklableEnabled then
+        warn("[UNTACKLABLE] Blocked Tackle Remote", ...)
+        return
+    end
+    return oldFire(self, ...)
+end)
+
+---------------------------------------------------
+-- DELETE TACKLE LINE
+---------------------------------------------------
+Workspace.ChildAdded:Connect(function(child)
+    if untacklableEnabled and child.Name == "TackleLine" then
+        task.wait()
+        child:Destroy()
+        warn("[UNTACKLABLE] TackleLine destroyed")
+    end
+end)
+
+---------------------------------------------------
+-- FORCE TACKLE STATES OFF
+---------------------------------------------------
+RunService.Heartbeat:Connect(function()
+    if not untacklableEnabled then return end
+
     local char = RCFA.Character
     if not char then return end
 
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
+    local hitbox = char:FindFirstChild("Hitbox")
+    if not hitbox then return end
 
-    local hitbox = root:FindFirstChild("Hitbox")
-    if hitbox then
-        local script = hitbox:FindFirstChildWhichIsA("Script")
-        if script then
-            script.Disabled = state
+    local cv = hitbox:FindFirstChild("CharacterValues")
+    if not cv then return end
+
+    for _,v in ipairs(cv:GetChildren()) do
+        if v:IsA("BoolValue") then
+            if v.Name == "Tackle"
+            or v.Name == "Downed"
+            or v.Name == "Jammed"
+            or v.Name == "StiffArm"
+            or v.Name == "Blocked" then
+                v.Value = false
+            end
         end
     end
+
+    -- restore movement if server tries to lock you
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        if hum.WalkSpeed < 10 then
+            hum.WalkSpeed = Options.WalkSpeedSlider.Value or 16
+        end
+        hum.JumpPower = Options.JumpPowerSlider.Value or 50
+    end
+end)
+
+---------------------------------------------------
+-- GUI TOGGLE
+---------------------------------------------------
+Tabs.RCFA:AddToggle("UntacklableToggle", {
+    Title = "Untacklable Mode",
+    Default = false
+}):OnChanged(function(state)
+    untacklableEnabled = state
+
+    Fluent:Notify({
+        Title = "Navsploit",
+        Content = state and "Untacklable ENABLED" or "Untacklable DISABLED",
+        Duration = 2
+    })
 end)
 
 Tabs.RCFA:AddToggle("VisibleHB", {
