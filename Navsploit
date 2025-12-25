@@ -558,7 +558,93 @@ RCFA.CharacterAdded:Connect(function(char)
 end)
 
 
+RCFA.CharacterAdded:Connect(function()
+    task.wait(1)
+    setupBV()
+end)
 
+ocal rbStunEnabled = false
+
+Tabs.RCFA:AddToggle("RBStunToggle", {
+    Title = "RB Stun (Toggle Yourself)",
+    Default = false
+}):OnChanged(function(state)
+    rbStunEnabled = state
+    local char = RCFA.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not root then return end
+
+    if rbStunEnabled then
+        -- STUN: disable hitbox and make untouchable
+        if root:FindFirstChild("Hitbox") then
+            root.Hitbox.CanCollide = false
+            root.Hitbox.CanTouch = false
+        end
+        if not char:FindFirstChild("CharacterValues") then
+            local cv = Instance.new("Folder")
+            cv.Name = "CharacterValues"
+            cv.Parent = char
+        end
+        local cv = char.CharacterValues
+        if not cv:FindFirstChild("Invincible") then
+            local inv = Instance.new("BoolValue")
+            inv.Name = "Invincible"
+            inv.Value = true
+            inv.Parent = cv
+        else
+            cv.Invincible.Value = true
+        end
+        humanoid.PlatformStand = true
+    else
+        -- UNSTUN: restore hitbox and vulnerability
+        if root:FindFirstChild("Hitbox") then
+            root.Hitbox.CanCollide = false
+            root.Hitbox.CanTouch = true
+        end
+        if char:FindFirstChild("CharacterValues") and char.CharacterValues:FindFirstChild("Invincible") then
+            char.CharacterValues.Invincible.Value = false
+        end
+        humanoid.PlatformStand = false
+    end
+
+    Fluent:Notify({
+        Title = "Navsploit",
+        Content = "RB Stun: " .. (rbStunEnabled and "Enabled" or "Disabled"),
+        Duration = 2
+    })
+end)
+
+-- Reapply RB Stun after respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if rbStunEnabled then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if root and humanoid then
+            if root:FindFirstChild("Hitbox") then
+                root.Hitbox.CanCollide = false
+                root.Hitbox.CanTouch = false
+            end
+            if not char:FindFirstChild("CharacterValues") then
+                local cv = Instance.new("Folder")
+                cv.Name = "CharacterValues"
+                cv.Parent = char
+            end
+            local cv = char.CharacterValues
+            if not cv:FindFirstChild("Invincible") then
+                local inv = Instance.new("BoolValue")
+                inv.Name = "Invincible"
+                inv.Value = true
+                inv.Parent = cv
+            else
+                cv.Invincible.Value = true
+            end
+            humanoid.PlatformStand = true
+        end
+    end
+end)
 ---------------------------------------------------
 -- OL/DL (BODYVELOCITY DESTROY) WITH FLEXIBLE KEYBIND
 ---------------------------------------------------
@@ -867,93 +953,7 @@ end)
 -- RESPAWN SUPPORT
 ---------------------------------------------------
 
-RCFA.CharacterAdded:Connect(function()
-    task.wait(1)
-    setupBV()
-end)
 
-ocal rbStunEnabled = false
-
-Tabs.RCFA:AddToggle("RBStunToggle", {
-    Title = "RB Stun (Toggle Yourself)",
-    Default = false
-}):OnChanged(function(state)
-    rbStunEnabled = state
-    local char = RCFA.Character
-    if not char then return end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not humanoid or not root then return end
-
-    if rbStunEnabled then
-        -- STUN: disable hitbox and make untouchable
-        if root:FindFirstChild("Hitbox") then
-            root.Hitbox.CanCollide = false
-            root.Hitbox.CanTouch = false
-        end
-        if not char:FindFirstChild("CharacterValues") then
-            local cv = Instance.new("Folder")
-            cv.Name = "CharacterValues"
-            cv.Parent = char
-        end
-        local cv = char.CharacterValues
-        if not cv:FindFirstChild("Invincible") then
-            local inv = Instance.new("BoolValue")
-            inv.Name = "Invincible"
-            inv.Value = true
-            inv.Parent = cv
-        else
-            cv.Invincible.Value = true
-        end
-        humanoid.PlatformStand = true
-    else
-        -- UNSTUN: restore hitbox and vulnerability
-        if root:FindFirstChild("Hitbox") then
-            root.Hitbox.CanCollide = false
-            root.Hitbox.CanTouch = true
-        end
-        if char:FindFirstChild("CharacterValues") and char.CharacterValues:FindFirstChild("Invincible") then
-            char.CharacterValues.Invincible.Value = false
-        end
-        humanoid.PlatformStand = false
-    end
-
-    Fluent:Notify({
-        Title = "Navsploit",
-        Content = "RB Stun: " .. (rbStunEnabled and "Enabled" or "Disabled"),
-        Duration = 2
-    })
-end)
-
--- Reapply RB Stun after respawn
-RCFA.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    if rbStunEnabled then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if root and humanoid then
-            if root:FindFirstChild("Hitbox") then
-                root.Hitbox.CanCollide = false
-                root.Hitbox.CanTouch = false
-            end
-            if not char:FindFirstChild("CharacterValues") then
-                local cv = Instance.new("Folder")
-                cv.Name = "CharacterValues"
-                cv.Parent = char
-            end
-            local cv = char.CharacterValues
-            if not cv:FindFirstChild("Invincible") then
-                local inv = Instance.new("BoolValue")
-                inv.Name = "Invincible"
-                inv.Value = true
-                inv.Parent = cv
-            else
-                cv.Invincible.Value = true
-            end
-            humanoid.PlatformStand = true
-        end
-    end
-end)
 ---------------------------------------------------
 -- SETTINGS TAB FIXED & THEME SWITCH
 ---------------------------------------------------
