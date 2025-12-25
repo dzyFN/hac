@@ -7,7 +7,7 @@ local allowedUsers = {
     ["gaymute"] = true,
     ["newtrackrunners"] = true,
 ["Bankrollpainful"] = true,
-
+["FNX_milo "] = true,
   ["Pacablly"] = true,
   ["ddriIIy"] = true,
     ["keehqq"] = true,
@@ -406,16 +406,6 @@ RCFA.CharacterAdded:Connect(function()
     updateHitbox()
 end)
 
-Tabs.RCFA:AddToggle("VisibleHB", {
-    Title = "Visible Hitbox",
-    Default = false
-}):OnChanged(function(state)
-    hitboxVisible = state
-    local char = RCFA.Character
-    if char and char:FindFirstChild("Hitbox") then
-        char.Hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
-    end
-end)
 
 ---------------------------------------------------
 -- TACKLE TOGGLE (DISABLE HITBOX SCRIPT)
@@ -439,6 +429,17 @@ Tabs.RCFA:AddToggle("DisableTackleHB", {
     end
 end)
 
+Tabs.RCFA:AddToggle("VisibleHB", {
+    Title = "Visible Hitbox",
+    Default = false
+}):OnChanged(function(state)
+    hitboxVisible = state
+    local char = RCFA.Character
+    if char and char:FindFirstChild("Hitbox") then
+        char.Hitbox.Transparency = hitboxVisible and 0.8 or hitboxTransparencyValue
+    end
+end)
+
 ---------------------------------------------------
 -- MAGNET SYSTEM
 ---------------------------------------------------
@@ -450,7 +451,11 @@ Tabs.RCFA:AddInput("MagnetBox", {
     Placeholder = "Enter range..."
 }):OnChanged(function(text)
     local num = tonumber(text)
-    magnetValue = num
+    if num then
+        magnetValue = num
+    else
+        magnetValue = nil
+    end
 end)
 
 task.spawn(function()
@@ -458,11 +463,7 @@ task.spawn(function()
         if magnetValue then
             local char = RCFA.Character
             if char and char:FindFirstChild("Hitbox") then
-                char.Hitbox.Size = Vector3.new(
-                    magnetValue + 3,
-                    magnetValue + 5,
-                    magnetValue + 3
-                )
+                char.Hitbox.Size = Vector3.new(magnetValue + 3, magnetValue + 5, magnetValue + 3)
             end
         end
     end
@@ -472,38 +473,37 @@ end)
 -- AUTO-TUCK SYSTEM WITH KEYBIND (RCFA TAB)
 ---------------------------------------------------
 local autoTuckEnabled = false
-local autoTuckBind = Enum.KeyCode.RightBracket
+local autoTuckBind = Enum.KeyCode.RightBracket -- default key
 local autoTuckConnection
 local waitingForBind = false
 
+-- GUI Toggle
 local autoTuckToggle = Tabs.RCFA:AddToggle("AutoTuckToggle", {
     Title = "Auto Tuck (ON/OFF)",
     Default = false
 })
 
+-- GUI Button to set keybind
 Tabs.RCFA:AddButton({
     Title = "Set AutoTuck Key",
     Description = "Press any key or controller button",
     Callback = function()
         waitingForBind = true
-        Fluent:Notify({
-            Title = "Navsploit",
-            Content = "Press a key or controller button...",
-            Duration = 3
-        })
+        Fluent:Notify({Title="Navsploit", Content="Press a key or controller button to bind Auto Tuck...", Duration=3})
     end
 })
 
+-- Setup AutoTuck connection
 local function setupAutoTuck()
+    -- Disconnect previous connection if exists
     if autoTuckConnection then
         autoTuckConnection:Disconnect()
         autoTuckConnection = nil
     end
-
     if autoTuckEnabled and RCFA.Character then
         autoTuckConnection = RCFA.Character.ChildAdded:Connect(function(child)
             if child.Name == "Football" then
-                task.wait()
+                task.wait(0.1)
                 local handle = child:FindFirstChild("Handle")
                 if handle and handle:FindFirstChild("RemoteEvent") then
                     handle.RemoteEvent:FireServer({"Tuck"})
@@ -513,66 +513,46 @@ local function setupAutoTuck()
     end
 end
 
+-- Toggle from GUI
 autoTuckToggle:OnChanged(function(state)
     autoTuckEnabled = state
     setupAutoTuck()
 end)
 
-UserInputService.InputBegan:Connect(function(input, gp)
+-- Detect key/controller press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if waitingForBind then
+        -- Set the bind directly from key or controller button
         autoTuckBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
         waitingForBind = false
         Fluent:Notify({
             Title = "Navsploit",
-            Content = "Auto Tuck bound to "..tostring(autoTuckBind),
-            Duration = 1
+            Content = "Auto Tuck Key set to: "..tostring(autoTuckBind),
+            Duration = 3
         })
         return
     end
 
-    if gp then return end
-
+    if gameProcessed then return end
     if input.KeyCode == autoTuckBind or input.UserInputType == autoTuckBind then
         autoTuckEnabled = not autoTuckEnabled
         autoTuckToggle:SetValue(autoTuckEnabled)
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "Auto Tuck: "..(autoTuckEnabled and "Enabled" or "Disabled"),
+            Duration = 1.5
+        })
         setupAutoTuck()
     end
 end)
 
-RCFA.CharacterAdded:Connect(function()
-    task.wait(1)
+-- Reapply AutoTuck on character respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1) -- wait for humanoid and children
     setupAutoTuck()
 end)
 
 
----------------------------------------------------
--- OOB INNEL ROPREP TOGGLE
----------------------------------------------------
-local oobEnabled = true -- start enabled
-
-Tabs.RCFA:AddToggle("OOBInnELToggle", {
-    Title = "OOB InnEL ROPREP",
-    Default = true,
-}):OnChanged(function(state)
-    oobEnabled = state
-    local oobScriptFolder = workspace:FindFirstChild("Field")
-        and workspace.Field:FindFirstChild("OOB Area")
-        and workspace.Field["OOB Area"]:FindFirstChild("OOB Script Blocks")
-
-    if oobScriptFolder then
-        for _, child in ipairs(oobScriptFolder:GetChildren()) do
-            if child:IsA("Script") then
-                child.Disabled = not oobEnabled
-            end
-        end
-    end
-
-    Fluent:Notify({
-        Title = "Navsploit",
-        Content = "OOB InnEL Scripts "..(oobEnabled and "Enabled" or "Disabled"),
-        Duration = 3
-    })
-end)
 
 ---------------------------------------------------
 -- OL/DL (BODYVELOCITY DESTROY) WITH FLEXIBLE KEYBIND
@@ -623,6 +603,38 @@ task.spawn(function()
         end
     end
 end)
+
+-- Detect key/controller press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if waitingForBVBind then
+        -- Set the bind directly from key or controller button
+        bvBind = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+        waitingForBVBind = false
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "OL/DL Key set to: "..tostring(bvBind),
+            Duration = 3
+        })
+        return
+    end
+
+    if gameProcessed then return end
+    if input.KeyCode == bvBind or input.UserInputType == bvBind then
+        bvEnabled = not bvEnabled
+        bvToggle:SetValue(bvEnabled)
+        Fluent:Notify({
+            Title = "Navsploit",
+            Content = "OL/DL "..(bvEnabled and "ON" or "OFF"),
+            Duration = 3
+        })
+    end
+end)
+
+-- Reapply OL/DL loop on character respawn
+RCFA.CharacterAdded:Connect(function(char)
+    task.wait(1) -- wait for character to load
+end)
+
 ---------------------------------------------------
 -- DEX TOGGLE (FULL CLEAN)
 ---------------------------------------------------
