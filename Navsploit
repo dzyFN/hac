@@ -445,15 +445,85 @@ Tabs.RCFA:AddToggle("VisibleHB", {
     end
 end)
 
----------------------------------------------------
--- RB STUN TOGGLE (ADD HERE)
----------------------------------------------------
-local rbStunEnabled = false
+local RCFA = LocalPlayer
+local Character = RCFA.Character or RCFA.CharacterAdded:Wait()
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 
-Tabs.RCFA:AddToggle("RBStunToggle", {
-    Title = "RB Stun (Toggle Yourself)",
+-- Auto Unstun / RB Stun Variables
+local autoUnstunEnabled = false
+local rbStunEnabled = false
+local STUN_RADIUS = 15 -- studs around you
+local STUN_TIME = 3 -- seconds
+
+-- =====================
+-- AUTO UNSTUN FUNCTION
+-- =====================
+local function autoUnstun()
+    while autoUnstunEnabled and RCFA.Character do
+        local char = RCFA.Character
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        task.wait(0.1)
+    end
+end
+
+-- =====================
+-- RB STUN FUNCTION
+-- =====================
+local function applyStunAura()
+    local myChar = RCFA.Character
+    if not myChar then return end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    local startTime = tick()
+    task.spawn(function()
+        while tick() - startTime < STUN_TIME do
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= RCFA then
+                    local char = plr.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local dist = (char.HumanoidRootPart.Position - myRoot.Position).Magnitude
+                        if dist <= STUN_RADIUS then
+                            local cv = char:FindFirstChild("CharacterValues")
+                            if cv and cv:FindFirstChild("Tackle") then
+                                cv.Tackle.Value = false
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+end
+
+-- =====================
+-- RCFA TAB TOGGLES
+-- =====================
+Tabs.RCFA:AddToggle("AutoUnstunToggle", {
+    Title = "Auto Unstun",
     Default = false
 }):OnChanged(function(state)
+    if not allowedUsers[RCFA.Name] then return end
+    autoUnstunEnabled = state
+    if state then
+        task.spawn(autoUnstun)
+        Fluent:Notify({Title="RCFA", Content="Auto Unstun Enabled", Duration=2})
+    else
+        Fluent:Notify({Title="RCFA", Content="Auto Unstun Disabled", Duration=2})
+    end
+end)
+
+Tabs.RCFA:AddToggle("RBStunToggle", {
+    Title = "RB Stun (Aura)",
+    Default = false
+}):OnChanged(function(state)
+    if not allowedUsers[RCFA.Name] then return end
     rbStunEnabled = state
     local char = RCFA.Character
     if not char then return end
@@ -462,7 +532,7 @@ Tabs.RCFA:AddToggle("RBStunToggle", {
     if not humanoid or not root then return end
 
     if rbStunEnabled then
-        -- STUN: disable hitbox and make untouchable
+        -- STUN: disable hitbox temporarily and make invincible
         if root:FindFirstChild("Hitbox") then
             root.Hitbox.CanCollide = false
             root.Hitbox.CanTouch = false
@@ -482,8 +552,9 @@ Tabs.RCFA:AddToggle("RBStunToggle", {
             cv.Invincible.Value = true
         end
         humanoid.PlatformStand = true
+        applyStunAura()
     else
-        -- UNSTUN: restore hitbox and vulnerability
+        -- UNSTUN: restore hitbox and normal state
         if root:FindFirstChild("Hitbox") then
             root.Hitbox.CanCollide = false
             root.Hitbox.CanTouch = true
@@ -495,15 +566,20 @@ Tabs.RCFA:AddToggle("RBStunToggle", {
     end
 
     Fluent:Notify({
-        Title = "Navsploit",
-        Content = "RB Stun: " .. (rbStunEnabled and "Enabled" or "Disabled"),
+        Title = "RCFA",
+        Content = "RB Stun: "..(rbStunEnabled and "Enabled" or "Disabled"),
         Duration = 2
     })
 end)
 
--- Reapply RB Stun after respawn
+-- =====================
+-- REAPPLY ON RESPAWN
+-- =====================
 RCFA.CharacterAdded:Connect(function(char)
     task.wait(1)
+    if autoUnstunEnabled then
+        task.spawn(autoUnstun)
+    end
     if rbStunEnabled then
         local root = char:FindFirstChild("HumanoidRootPart")
         local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -527,6 +603,7 @@ RCFA.CharacterAdded:Connect(function(char)
                 cv.Invincible.Value = true
             end
             humanoid.PlatformStand = true
+            applyStunAura()
         end
     end
 end)
