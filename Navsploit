@@ -445,6 +445,10 @@ Tabs.RCFA:AddToggle("VisibleHB", {
     end
 end)
 
+---------------------------------------------------
+-- RCFA AUTO / RB STUN SECTION
+---------------------------------------------------
+
 local RCFA = LocalPlayer
 local Character = RCFA.Character or RCFA.CharacterAdded:Wait()
 local RunService = game:GetService("RunService")
@@ -454,7 +458,7 @@ local Players = game:GetService("Players")
 -- Auto Unstun / RB Stun Variables
 local autoUnstunEnabled = false
 local rbStunEnabled = false
-local STUN_RADIUS = 15 -- studs around you
+local STUN_RADIUS = 1 -- studs around you
 local STUN_TIME = 3 -- seconds
 
 -- =====================
@@ -466,6 +470,13 @@ local function autoUnstun()
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        -- Ensure Downed.Value is always false
+        if char:FindFirstChild("Hitbox") and char.Hitbox:FindFirstChild("CharacterValues") then
+            local downedVal = char.Hitbox.CharacterValues:FindFirstChild("Downed")
+            if downedVal then
+                downedVal.Value = false
+            end
         end
         task.wait(0.1)
     end
@@ -490,8 +501,16 @@ local function applyStunAura()
                         local dist = (char.HumanoidRootPart.Position - myRoot.Position).Magnitude
                         if dist <= STUN_RADIUS then
                             local cv = char:FindFirstChild("CharacterValues")
-                            if cv and cv:FindFirstChild("Tackle") then
-                                cv.Tackle.Value = false
+                            if cv then
+                                -- Force Downed to false
+                                local downedVal = cv:FindFirstChild("Downed")
+                                if downedVal then
+                                    downedVal.Value = false
+                                end
+                                -- Also reset Tackle if exists
+                                if cv:FindFirstChild("Tackle") then
+                                    cv.Tackle.Value = false
+                                end
                             end
                         end
                     end
@@ -536,6 +555,13 @@ Tabs.RCFA:AddToggle("RBStunToggle", {
         if root:FindFirstChild("Hitbox") then
             root.Hitbox.CanCollide = false
             root.Hitbox.CanTouch = false
+            -- Force Downed to false
+            if root.Hitbox:FindFirstChild("CharacterValues") then
+                local downedVal = root.Hitbox.CharacterValues:FindFirstChild("Downed")
+                if downedVal then
+                    downedVal.Value = false
+                end
+            end
         end
         if not char:FindFirstChild("CharacterValues") then
             local cv = Instance.new("Folder")
@@ -558,6 +584,13 @@ Tabs.RCFA:AddToggle("RBStunToggle", {
         if root:FindFirstChild("Hitbox") then
             root.Hitbox.CanCollide = false
             root.Hitbox.CanTouch = true
+            -- Ensure Downed is false on unstun
+            if root.Hitbox:FindFirstChild("CharacterValues") then
+                local downedVal = root.Hitbox.CharacterValues:FindFirstChild("Downed")
+                if downedVal then
+                    downedVal.Value = false
+                end
+            end
         end
         if char:FindFirstChild("CharacterValues") and char.CharacterValues:FindFirstChild("Invincible") then
             char.CharacterValues.Invincible.Value = false
@@ -587,6 +620,13 @@ RCFA.CharacterAdded:Connect(function(char)
             if root:FindFirstChild("Hitbox") then
                 root.Hitbox.CanCollide = false
                 root.Hitbox.CanTouch = false
+                -- Force Downed to false
+                if root.Hitbox:FindFirstChild("CharacterValues") then
+                    local downedVal = root.Hitbox.CharacterValues:FindFirstChild("Downed")
+                    if downedVal then
+                        downedVal.Value = false
+                    end
+                end
             end
             if not char:FindFirstChild("CharacterValues") then
                 local cv = Instance.new("Folder")
